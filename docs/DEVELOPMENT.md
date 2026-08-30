@@ -12,7 +12,9 @@ Nuxt 4 依「目錄位置」自動決定行為，命名規則沿用 Nuxt 官方�
 | 版面 | `app/layouts/` | kebab-case 檔名，`default.vue` 為預設版面 | `app/layouts/default.vue` |
 | Route Middleware | `app/middleware/` | kebab-case 檔名 | `app/middleware/auth.ts` |
 | Server API | `server/api/` | kebab-case 檔名，`.get.ts` / `.post.ts` 等後綴對應 HTTP method | `server/api/mastery.get.ts` → `GET /api/mastery` |
-| 型別定義 | 建議集中於 `app/types/` 或與功能同目錄的 `*.types.ts` | camelCase 或 kebab-case 檔名，型別本身用 PascalCase | `MasteryPhase` |
+| Server 工具函式／資料 | `server/utils/` | camelCase 或 kebab-case 檔名 | `server/utils/support-operators.data.ts`（Nitro 自動匯入，僅 server 端可用） |
+| 共用型別（client + server） | `shared/types/` | kebab-case 檔名，型別本身用 PascalCase | `shared/types/support-operator.ts` → `SupportOperator`（Nuxt 4 `shared/` 目錄，`app/` 與 `server/` 皆可 auto-import，對應 `tsconfig.shared.json`） |
+| 型別定義（僅前端使用） | 建議集中於 `app/types/` 或與功能同目錄的 `*.types.ts` | camelCase 或 kebab-case 檔名，型別本身用 PascalCase | `MasteryPhase` |
 
 > 上述目錄多數尚未在專案中建立；第一次新增某類型檔案時，直接依此表建立對應目錄即可，Nuxt 會自動掃描並套用慣例，不需額外註冊。
 
