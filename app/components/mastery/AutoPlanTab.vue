@@ -26,85 +26,30 @@ const bestCandidate = computed(() => {
 </script>
 
 <template>
-  <div class="auto-plan-tab">
-    <label class="field">
-      <span class="field__label">起始階段</span>
-      <select v-model.number="startStage" class="field__control">
+  <div class="flex flex-col gap-4">
+    <label class="flex flex-col gap-1 text-sm max-w-40">
+      <span class="font-semibold">起始階段</span>
+      <select v-model.number="startStage" class="px-2.5 py-1.5 border border-gray-300 rounded">
         <option :value="1">專精一</option>
         <option :value="2">專精二</option>
         <option :value="3">專精三</option>
       </select>
     </label>
 
-    <p v-if="!props.selectedClass" class="hint">請先選擇幹員職業以取得建議。</p>
+    <p v-if="!props.selectedClass" class="text-gray-500">請先選擇幹員職業以取得建議。</p>
     <template v-else>
-      <p v-if="pending" class="hint">候選幹員查詢中…</p>
-      <p v-else-if="error" class="hint hint--error">候選幹員查詢失敗，請稍後再試。</p>
-      <div v-else class="stage-list">
-        <section v-for="stage in visibleStages" :key="stage" class="stage-card">
-          <h3>{{ STAGE_LABELS[stage] }}</h3>
+      <p v-if="pending" class="text-gray-500">候選幹員查詢中…</p>
+      <p v-else-if="error" class="text-red-600">候選幹員查詢失敗，請稍後再試。</p>
+      <div v-else class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]">
+        <section v-for="stage in visibleStages" :key="stage" class="p-4 border border-gray-200 rounded-lg">
+          <h3 class="text-lg font-semibold mb-2">{{ STAGE_LABELS[stage] }}</h3>
           <p v-if="bestCandidate">
             建議候選幹員：{{ bestCandidate.name }}（+{{ bestCandidate.efficiencyBonus }}%）
           </p>
-          <p v-else class="hint">目前沒有符合條件的候選幹員。</p>
-          <p class="placeholder">建議時間：待計算</p>
+          <p v-else class="text-gray-500">目前沒有符合條件的候選幹員。</p>
+          <p class="text-gray-400 italic">建議時間：待計算</p>
         </section>
       </div>
     </template>
   </div>
 </template>
-
-<style scoped>
-.auto-plan-tab {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  max-width: 10rem;
-}
-
-.field__label {
-  font-weight: 600;
-}
-
-.field__control {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.stage-list {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-}
-
-.stage-card {
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-}
-
-.stage-card h3 {
-  margin: 0 0 0.5rem;
-}
-
-.placeholder {
-  color: #888;
-  font-style: italic;
-}
-
-.hint {
-  color: #666;
-}
-
-.hint--error {
-  color: #c0392b;
-}
-</style>

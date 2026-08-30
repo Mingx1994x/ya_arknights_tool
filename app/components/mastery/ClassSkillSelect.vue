@@ -18,19 +18,19 @@ function onSkillChange(event: Event) {
 </script>
 
 <template>
-  <div class="class-skill-select">
-    <label class="field">
-      <span class="field__label">幹員職業</span>
-      <select class="field__control" :value="selectedClass ?? ''" @change="onClassChange">
+  <div class="flex flex-wrap gap-4">
+    <label class="flex flex-col gap-1 text-sm">
+      <span class="font-semibold">幹員職業</span>
+      <select class="min-w-32 px-2.5 py-1.5 border border-gray-300 rounded" :value="selectedClass ?? ''" @change="onClassChange">
         <option value="">請選擇職業</option>
         <option v-for="operatorClass in ARKNIGHTS_CLASSES" :key="operatorClass" :value="operatorClass">
           {{ operatorClass }}
         </option>
       </select>
     </label>
-    <label class="field">
-      <span class="field__label">技能編號</span>
-      <select class="field__control" :value="selectedSkill ?? ''" @change="onSkillChange">
+    <label class="flex flex-col gap-1 text-sm">
+      <span class="font-semibold">技能編號</span>
+      <select class="min-w-32 px-2.5 py-1.5 border border-gray-300 rounded" :value="selectedSkill ?? ''" @change="onSkillChange">
         <option value="">不限</option>
         <option value="1">一技</option>
         <option value="2">二技</option>
@@ -39,29 +39,3 @@ function onSkillChange(event: Event) {
     </label>
   </div>
 </template>
-
-<style scoped>
-.class-skill-select {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.field__label {
-  font-weight: 600;
-}
-
-.field__control {
-  min-width: 8rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-</style>

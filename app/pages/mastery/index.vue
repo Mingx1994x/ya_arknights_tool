@@ -8,27 +8,27 @@ const activeTab = ref<'auto' | 'manual'>('auto')
 </script>
 
 <template>
-  <div class="mastery-page">
-    <h1>幹員專精試算</h1>
+  <div class="flex flex-col gap-6 max-w-[60rem] mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold">幹員專精試算</h1>
 
     <MasteryClassSkillSelect
       v-model:selected-class="selectedClass"
       v-model:selected-skill="selectedSkill"
     />
 
-    <div class="tabs">
+    <div class="flex gap-2 border-b border-gray-200">
       <button
         type="button"
-        class="tabs__button"
-        :class="{ 'tabs__button--active': activeTab === 'auto' }"
+        class="px-5 py-2.5 border-0 border-b-2 border-transparent bg-transparent cursor-pointer text-base"
+        :class="activeTab === 'auto' ? 'border-b-blue-500 font-semibold' : ''"
         @click="activeTab = 'auto'"
       >
         自動建議排程
       </button>
       <button
         type="button"
-        class="tabs__button"
-        :class="{ 'tabs__button--active': activeTab === 'manual' }"
+        class="px-5 py-2.5 border-0 border-b-2 border-transparent bg-transparent cursor-pointer text-base"
+        :class="activeTab === 'manual' ? 'border-b-blue-500 font-semibold' : ''"
         @click="activeTab = 'manual'"
       >
         手動模擬排程
@@ -47,34 +47,3 @@ const activeTab = ref<'auto' | 'manual'>('auto')
     />
   </div>
 </template>
-
-<style scoped>
-.mastery-page {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  border-bottom: 1px solid #ddd;
-}
-
-.tabs__button {
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: none;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.tabs__button--active {
-  border-bottom-color: #3b82f6;
-  font-weight: 600;
-}
-</style>
