@@ -1,0 +1,31 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Local dev plans (see docs/DEVELOPMENT.md 計畫歸檔流程)
+docs/plans/draft/
+docs/plans/archive/
+
+# Claude Code local config/skills
+.claude/
