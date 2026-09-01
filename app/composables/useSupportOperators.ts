@@ -1,4 +1,8 @@
-import type { ArknightsClass, SupportOperator } from '#shared/types/support-operator'
+import type {
+  ArknightsClass,
+  SupportOperatorRecord,
+  SkillPhase,
+} from '#shared/types/support-operator';
 
 /**
  * 依職業／技能編號向 GET /api/support-operators 取得候選輔訓幹員清單，
@@ -6,14 +10,14 @@ import type { ArknightsClass, SupportOperator } from '#shared/types/support-oper
  */
 export function useSupportOperators(
   selectedClass: Ref<ArknightsClass | undefined>,
-  selectedSkill: Ref<1 | 2 | 3 | undefined>,
+  selectedSkill: Ref<SkillPhase | undefined>,
 ) {
-  return useFetch<{ data: SupportOperator[] }>('/api/support-operators', {
+  return useFetch('/api/support-operators', {
     query: computed(() => ({
       class: selectedClass.value,
       skill: selectedSkill.value,
     })),
     default: () => [],
-    transform: (response) => response.data,
-  })
+    transform: (response: { data: SupportOperatorRecord[] }) => response.data,
+  });
 }

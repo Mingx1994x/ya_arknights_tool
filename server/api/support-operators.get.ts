@@ -1,4 +1,8 @@
-import type { ArknightsClass } from '#shared/types/support-operator'
+import type {
+  ArknightsClass,
+  SkillPhase,
+} from '#shared/types/support-operator';
+import { getSupportOperators } from '../utils/support-operators.data';
 
 const VALID_CLASSES: ArknightsClass[] = [
   '先鋒',
@@ -9,56 +13,64 @@ const VALID_CLASSES: ArknightsClass[] = [
   '醫療',
   '輔助',
   '特種',
-]
+];
 
-const VALID_SKILLS = [1, 2, 3] as const
+const VALID_SKILLS = [1, 2, 3] as const;
 
 /**
  * GET /api/support-operators?class=狙擊&skill=3
  *
- * 篩選規則對照 docs/domain/arknights_tools_init.md 第 8、9 節：
  * - 不帶 class：不做職業篩選。
- * - 不帶 skill：只回傳 skillScope 為 null 的 main/general 類幹員。
- * - 帶 skill：回傳 skillScope 為 null 的幹員，加上 skillScope 等於該技能編號的 skill_specific 幹員。
+ * - 帶 class：只保留 targetProfession 包含該職業的幹員。
+ * - skill 類幹員必須 targetPhase 命中 targetSkill 才保留，否則整筆濾除（不帶 skill 時 skill 類一律濾除）；
+ *   非 skill 類（critical/specific/general）不受此限制。
+ * - 篩選後依 baseEfficiency + conditionEfficiency 由高到低排序回傳。
  */
-export default defineEventHandler((event) => {
-  const query = getQuery(event)
+export default defineEventHandler(async (event) => {
+  const supportOperators = await getSupportOperators();
 
-  const rawClass = query.class
-  const rawSkill = query.skill
+  const query = getQuery(event);
+  const { class: operatorProfession, skill: operatorSkill } = query;
 
-  let targetClass: ArknightsClass | undefined
-  if (typeof rawClass === 'string' && rawClass.length > 0) {
-    if (!VALID_CLASSES.includes(rawClass as ArknightsClass)) {
+  let targetClass: ArknightsClass | undefined;
+  if (typeof operatorProfession === 'string' && operatorProfession.length > 0) {
+    if (!VALID_CLASSES.includes(operatorProfession as ArknightsClass)) {
       throw createError({
         statusCode: 400,
-        statusMessage: `無效的 class 參數："${rawClass}"，須為 ${VALID_CLASSES.join('/')} 其中之一`,
-      })
+        statusMessage: `無效的 class 參數："${operatorProfession}"，須為 ${VALID_CLASSES.join('/')} 其中之一`,
+      });
     }
-    targetClass = rawClass as ArknightsClass
+    targetClass = operatorProfession as ArknightsClass;
   }
 
-  let targetSkill: 1 | 2 | 3 | undefined
-  if (typeof rawSkill === 'string' && rawSkill.length > 0) {
-    const parsed = Number(rawSkill)
+  let targetSkill: SkillPhase | undefined;
+  if (typeof operatorSkill === 'string' && operatorSkill.length > 0) {
+    const parsed = Number(operatorSkill);
     if (!VALID_SKILLS.includes(parsed as (typeof VALID_SKILLS)[number])) {
       throw createError({
         statusCode: 400,
-        statusMessage: `無效的 skill 參數："${rawSkill}"，須為 1/2/3 其中之一`,
-      })
+        statusMessage: `無效的 skill 參數："${operatorSkill}"，須為 1/2/3 其中之一`,
+      });
     }
-    targetSkill = parsed as 1 | 2 | 3
+    targetSkill = parsed as SkillPhase;
   }
 
-  const filtered = supportOperators.filter((operator) => {
-    if (targetClass && !operator.targetClasses.includes(targetClass)) {
-      return false
+  const filteredData = supportOperators.filter((operator) => {
+    if (targetClass && !operator.targetProfession.includes(targetClass)) {
+      return false;
     }
-    if (operator.skillScope === null) {
-      return true
+    if (operator.category === 'skill' && operator.targetPhase !== targetSkill) {
+      return false;
     }
-    return targetSkill !== undefined && operator.skillScope === targetSkill
-  })
+    return true;
+  });
 
-  return { data: filtered }
-})
+  const sortedData = filteredData
+    .slice()
+    .sort(
+      (a, b) =>
+        b.baseEfficiency + b.conditionEfficiency - (a.baseEfficiency + a.conditionEfficiency),
+    );
+
+  return { data: sortedData };
+});

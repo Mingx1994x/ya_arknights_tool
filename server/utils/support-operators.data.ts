@@ -1,207 +1,121 @@
-import type { SupportOperator } from '#shared/types/support-operator'
+import type {
+  ArknightsClass,
+  SupportOperatorCategory,
+  SupportOperatorRecord,
+} from '#shared/types/support-operator';
+import { getSheetValues } from './google-sheets';
 
-/**
- * Mock 輔訓幹員資料，謄寫自 Google Sheet「方舟專精計時器」附件:訓練幹員 分頁（20 筆）。
- * 之後若接上真的資料來源（Google Sheets API／資料庫），只需替換這個模組的內容，
- * server/api/support-operators.get.ts 的篩選邏輯與回傳格式不需變動。
- */
-export const supportOperators: SupportOperator[] = [
-  {
-    id: 'logos',
-    name: 'Logos',
-    category: 'main',
-    skillScope: null,
-    efficiencyBonus: 0,
-    targetClasses: ['先鋒', '近衛', '特種', '重裝', '醫療', '狙擊'],
-    triggersHalfWork: true,
-    requiredAccompanyMinutes: 305,
-    note: '需要5hr',
-  },
-  {
-    id: 'logos-caster-support',
-    name: 'Logos（術/輔）',
-    category: 'main_pro',
-    skillScope: null,
-    efficiencyBonus: 30,
-    targetClasses: ['術師', '輔助'],
-    triggersHalfWork: true,
-    requiredAccompanyMinutes: 305,
-    note: '需要5hr',
-  },
-  {
-    id: 'elysium',
-    name: '艾麗妮',
-    category: 'main',
-    skillScope: null,
-    efficiencyBonus: 0,
-    targetClasses: ['先鋒', '輔助', '特種', '重裝', '醫療', '術師'],
-    triggersHalfWork: true,
-    requiredAccompanyMinutes: 305,
-    note: '需要5hr',
-  },
-  {
-    id: 'elysium-guard-sniper',
-    name: '艾麗妮（近/狙）',
-    category: 'main_pro',
-    skillScope: null,
-    efficiencyBonus: 30,
-    targetClasses: ['近衛', '狙擊'],
-    triggersHalfWork: true,
-    requiredAccompanyMinutes: 305,
-    note: '需要5hr',
-  },
-  {
-    id: 'ulpianus',
-    name: '烏爾比安',
-    category: 'general',
-    skillScope: null,
-    efficiencyBonus: 50,
-    targetClasses: ['先鋒', '輔助', '特種', '重裝', '醫療', '術師'],
-    triggersHalfWork: false,
-    note: '宿舍要帶 3+1 睡覺幹員',
-  },
-  {
-    id: 'ulpianus-guard-support',
-    name: '烏爾比安（近/輔）',
-    category: 'general_pro',
-    skillScope: null,
-    efficiencyBonus: 80,
-    targetClasses: ['近衛', '輔助'],
-    triggersHalfWork: false,
-    note: '宿舍要帶 3+1 睡覺幹員',
-  },
-  {
-    id: 'flameshadow-fungus',
-    name: '焰影蕈草',
-    category: 'general_pro',
-    skillScope: null,
-    efficiencyBonus: 45,
-    targetClasses: ['醫療', '術師'],
-    triggersHalfWork: false,
-  },
-  {
-    id: 'heidi',
-    name: '黑',
-    category: 'general',
-    skillScope: null,
-    efficiencyBonus: 60,
-    targetClasses: ['狙擊'],
-    triggersHalfWork: false,
-  },
-  {
-    id: 'hongdou',
-    name: '紅豆',
-    category: 'general',
-    skillScope: null,
-    efficiencyBonus: 50,
-    targetClasses: ['先鋒'],
-    triggersHalfWork: false,
-  },
-  {
-    id: 'ursus-student-2',
-    name: '星熊',
-    category: 'general',
-    skillScope: null,
-    efficiencyBonus: 60,
-    targetClasses: ['重裝'],
-    triggersHalfWork: false,
-  },
-  {
-    id: 'a-mount-elephant',
-    name: '阿',
-    category: 'general',
-    skillScope: null,
-    efficiencyBonus: 60,
-    targetClasses: ['醫療'],
-    triggersHalfWork: false,
-  },
-  {
-    id: 'shalem',
-    name: '傀影',
-    category: 'general',
-    skillScope: null,
-    efficiencyBonus: 60,
-    targetClasses: ['特種'],
-    triggersHalfWork: false,
-  },
-  {
-    id: 'shuichen',
-    name: '水陳',
-    category: 'skill_specific',
-    skillScope: 1,
-    efficiencyBonus: 95,
-    targetClasses: ['狙擊'],
-    triggersHalfWork: false,
-    note: '一技能針對',
-  },
-  {
-    id: 'yeban',
-    name: '夜半',
-    category: 'skill_specific',
-    skillScope: 1,
-    efficiencyBonus: 75,
-    targetClasses: ['先鋒'],
-    triggersHalfWork: false,
-    note: '一技能針對',
-  },
-  {
-    id: 'texas-taciturnity',
-    name: '緘默德克薩斯',
-    category: 'skill_specific',
-    skillScope: 2,
-    efficiencyBonus: 80,
-    targetClasses: ['先鋒', '特種'],
-    triggersHalfWork: false,
-    note: '二技能針對',
-  },
-  {
-    id: 'muelsyse-turbid-lotus',
-    name: '濁塵芙蓉',
-    category: 'skill_specific',
-    skillScope: 2,
-    efficiencyBonus: 75,
-    targetClasses: ['醫療'],
-    triggersHalfWork: false,
-    note: '二技能針對',
-  },
-  {
-    id: 'skadi-muddy',
-    name: '濁心斯卡蒂',
-    category: 'skill_specific',
-    skillScope: 3,
-    efficiencyBonus: 95,
-    targetClasses: ['輔助'],
-    triggersHalfWork: false,
-    note: '三技能針對',
-  },
-  {
-    id: 'phantom-abyssal-ghost-shark',
-    name: '歸溟幽靈鯊',
-    category: 'skill_specific',
-    skillScope: 3,
-    efficiencyBonus: 95,
-    targetClasses: ['特種'],
-    triggersHalfWork: false,
-    note: '三技能針對',
-  },
-  {
-    id: 'gavial-fortified',
-    name: '百鍊嘉維爾',
-    category: 'skill_specific',
-    skillScope: 3,
-    efficiencyBonus: 95,
-    targetClasses: ['近衛'],
-    triggersHalfWork: false,
-    note: '三技能針對',
-  },
-  {
-    id: 'wang-yao',
-    name: '望',
-    category: 'skill_specific',
-    skillScope: 3,
-    efficiencyBonus: 70,
-    targetClasses: ['先鋒', '近衛', '重裝', '狙擊', '術師', '醫療', '輔助', '特種'],
-    triggersHalfWork: false,
-    note: '三技能針對',
-  },
-]
+const SPREADSHEET_ID = '18F_W-TFndGOEGCVH2cpal0CAdjnQujp9Qp3H3IM9QPU';
+// 從第 2 列開始，跳過表頭；分頁名稱含 ":" 需以單引號包住（A1 notation）
+const RANGE = "'資料表:陪練幹員'!A2:H";
+
+const CATEGORIES: SupportOperatorCategory[] = [
+  'critical',
+  'specific',
+  'general',
+  'skill',
+];
+const PROFESSIONS: ArknightsClass[] = [
+  '近衛',
+  '特種',
+  '重裝',
+  '醫療',
+  '先鋒',
+  '輔助',
+  '狙擊',
+  '術師',
+];
+const PHASES = [0, 1, 2, 3] as const;
+
+function parseRow(row: string[], rowIndex: number): SupportOperatorRecord {
+  function fail(message: string): never {
+    throw createError({
+      statusCode: 502,
+      statusMessage: `支援幹員資料表第 ${rowIndex + 2} 列解析失敗：${message}`,
+    });
+  }
+
+  const [
+    rawId,
+    rawCodeName,
+    rawCategory,
+    rawTargetProfession,
+    rawTargetPhase,
+    rawBaseEfficiency,
+    rawConditionEfficiency,
+    rawMemo,
+  ] = row;
+
+  const id = rawId?.trim();
+  if (!id) fail('id 為空');
+
+  const codeName = rawCodeName?.trim();
+  if (!codeName) fail('codeName 為空');
+
+  const category = rawCategory?.trim() as SupportOperatorCategory;
+  if (!CATEGORIES.includes(category)) fail(`category 不合法："${rawCategory}"`);
+
+  const targetProfessionRaw = rawTargetProfession?.trim();
+  const targetProfessionParts = (targetProfessionRaw ?? '')
+    .split('/')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (targetProfessionParts.length === 0) fail('targetProfession 為空');
+  for (const part of targetProfessionParts) {
+    if (!PROFESSIONS.includes(part as ArknightsClass))
+      fail(`targetProfession 含未知職業："${part}"`);
+  }
+  const targetProfession = targetProfessionParts as ArknightsClass[];
+
+  const targetPhaseNum = Number(rawTargetPhase);
+  if (!PHASES.includes(targetPhaseNum as (typeof PHASES)[number]))
+    fail(`targetPhase 不合法："${rawTargetPhase}"`);
+  const targetPhase = targetPhaseNum as SupportOperatorRecord['targetPhase'];
+
+  const baseEfficiencyRaw = (rawBaseEfficiency ?? '').replace('%', '').trim();
+  if (!baseEfficiencyRaw) fail('baseEfficiency 為空');
+  const baseEfficiency = Number(baseEfficiencyRaw);
+  if (!Number.isFinite(baseEfficiency))
+    fail(`baseEfficiency 不是有效數字："${rawBaseEfficiency}"`);
+
+  const conditionEfficiencyRaw = (rawConditionEfficiency ?? '')
+    .replace('%', '')
+    .trim();
+  if (!conditionEfficiencyRaw) fail('conditionEfficiency 為空');
+  const conditionEfficiency = Number(conditionEfficiencyRaw);
+  if (!Number.isFinite(conditionEfficiency))
+    fail(`conditionEfficiency 不是有效數字："${rawConditionEfficiency}"`);
+
+  const memo = rawMemo?.trim() || undefined;
+
+  return {
+    id,
+    codeName,
+    category,
+    targetProfession,
+    targetPhase,
+    baseEfficiency,
+    conditionEfficiency,
+    memo,
+  };
+}
+
+async function fetchSupportOperators(): Promise<SupportOperatorRecord[]> {
+  const rows = await getSheetValues(SPREADSHEET_ID, RANGE);
+  const records = rows.map((row, index) => parseRow(row, index));
+
+  if (records.length === 0) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: '支援幹員資料表讀取結果為空，請確認 Google Sheet 內容',
+    });
+  }
+
+  return records;
+}
+
+export const getSupportOperators = defineCachedFunction(fetchSupportOperators, {
+  maxAge: 60 * 5,
+  name: 'support-operators',
+  getKey: () => 'all',
+});
