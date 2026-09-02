@@ -2,14 +2,32 @@
 
 ## 現況說明
 
-本專案目前是 Nuxt 4 官方最小起始模板，尚未加入 `pages/`、`components/`、`composables/`、`server/` 等目錄。本文件記錄**現有結構**，並在對應章節標註「尚未建立」，待實際新增這些目錄/機制時，必須回來更新本文件（見 [DEVELOPMENT.md](./DEVELOPMENT.md) 的關鍵規則）。
+本專案原為 Nuxt 4 官方最小起始模板；「幹員專精試算」功能開始實作後，已新增 `app/pages/`、`app/components/`、`app/composables/`、`server/`、`shared/` 等目錄。本文件記錄**現有結構**，尚未建立的部分（資料庫、認證等）仍標註「尚未建立」，待實際新增時必須回來更新本文件（見 [DEVELOPMENT.md](./DEVELOPMENT.md) 的關鍵規則）。
 
 ## 目錄結構
 
 ```
 ya-arknights-tools/
 ├── app/
-│   └── app.vue              # Nuxt 4 應用程式進入點（root component）
+│   ├── app.vue                       # Nuxt 4 應用程式進入點，render <NuxtPage />
+│   ├── pages/
+│   │   ├── index.vue                 # 首頁（目前僅 render <NuxtWelcome /> 佔位）
+│   │   └── mastery/
+│   │       └── index.vue             # /mastery，幹員專精試算頁面殼
+│   ├── components/mastery/
+│   │   ├── ClassSkillSelect.vue      # <MasteryClassSkillSelect> 職業/技能編號選擇
+│   │   ├── AutoPlanTab.vue           # <MasteryAutoPlanTab> Tab A 自動建議排程
+│   │   └── ManualPlanTab.vue         # <MasteryManualPlanTab> Tab B 手動模擬排程
+│   └── composables/
+│       └── useSupportOperators.ts    # 包裝 /api/support-operators 的 useFetch
+├── server/
+│   ├── api/
+│   │   └── support-operators.get.ts  # GET /api/support-operators
+│   └── utils/
+│       └── support-operators.data.ts # 輔訓幹員 mock 資料（server-only，Nitro 自動匯入）
+├── shared/
+│   └── types/
+│       └── support-operator.ts       # SupportOperator 等型別，client/server 共用
 ├── public/
 │   ├── favicon.ico          # 網站 favicon
 │   └── robots.txt           # 允許所有 User-Agent 爬取（見下方內容）
@@ -35,7 +53,10 @@ ya-arknights-tools/
 
 | 路徑 | 用途 |
 | --- | --- |
-| `app/app.vue` | 目前唯一的 Vue 元件，render `<NuxtRouteAnnouncer />`（無障礙路由播報）與 `<NuxtWelcome />`（Nuxt 預設歡迎畫面，佔位用途，之後應被實際首頁內容取代） |
+| `app/app.vue` | Vue root component，render `<NuxtRouteAnnouncer />`（無障礙路由播報）與 `<NuxtPage />`（依 `app/pages/` 路由渲染對應頁面） |
+| `app/pages/mastery/index.vue` | 幹員專精試算頁面殼：共用「幹員職業／技能編號」選擇狀態，切換 Tab A（自動建議）／Tab B（手動模擬） |
+| `server/api/support-operators.get.ts` | 依 `class`／`skill` query 篩選輔訓幹員資料，回傳 `{ data: SupportOperator[] }` |
+| `shared/types/support-operator.ts` | `SupportOperator`／`ArknightsClass` 等型別，`app/` 與 `server/` 皆可 auto-import（對應 `tsconfig.shared.json`） |
 | `nuxt.config.ts` | `compatibilityDate: '2025-07-15'` 鎖定 Nuxt 相容行為版本；`devtools.enabled: true` 開啟 Nuxt DevTools |
 | `tsconfig.json` | 本身不含直接的 `compilerOptions`，而是透過 `references` 指向 `pnpm install`（`postinstall` → `nuxt prepare`）產生於 `.nuxt/` 的四個 project reference tsconfig（`tsconfig.app.json` / `tsconfig.server.json` / `tsconfig.shared.json` / `tsconfig.node.json`）。**這代表首次 clone 專案後必須先執行 `pnpm install` 才會有完整型別檢查**，否則編輯器可能報找不到參照的 tsconfig |
 | `public/robots.txt` | `Disallow:` 留空即允許所有頁面被索引 |
@@ -48,17 +69,16 @@ ya-arknights-tools/
 
 ## API 路由總覽表
 
-**尚未建立。** 專案目前沒有 `server/` 目錄，因此沒有任何 server route 或 API endpoint。若之後新增後端 API，需在此建立如下表格並持續維護：
-
 | 前綴 | 檔案 | 認證 | 說明 |
 | --- | --- | --- | --- |
-| _(尚無資料)_ | | | |
+| `GET /api/support-operators` | `server/api/support-operators.get.ts` | 無 | 依 query 篩選輔訓幹員（mock 資料，見 [domain 文件第 8 節](./domain/arknights_tools_init.md)）。Query：`class`（8 職業之一，可選）、`skill`（`1\|2\|3`，可選）。不帶 `skill` 時只回傳不限技能編號的 `main`/`general` 類幹員。 |
 
 新增 server route 時的慣例：Nuxt 會自動將 `server/api/*.ts` 對應為 `/api/*` 端點（[Nuxt Server Directory 文件](https://nuxt.com/docs/guide/directory-structure/server)）。
 
 ## 統一回應格式
 
-**尚未建立。** 目前沒有任何 API，因此沒有統一回應格式可記錄。新增第一支 API 時，應在此定義成功/錯誤回應的共同結構（例如 `{ data, error }`），並附上範例 JSON。
+- **成功**：`{ data: T }`，例如 `GET /api/support-operators` 回傳 `{ data: SupportOperator[] }`。
+- **錯誤**：一律用 Nitro 的 `createError({ statusCode, statusMessage })` 拋出，交由框架轉成標準 HTTP 錯誤回應（不額外自訂 `{ error }` 包裝），例如 `support-operators.get.ts` 對非法 `class`/`skill` query 回傳 `400`。
 
 ## 認證與授權機制
 

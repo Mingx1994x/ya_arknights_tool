@@ -4,7 +4,7 @@
 
 | 功能 | 狀態 | 說明 |
 | --- | --- | --- |
-| 幹員專精工作量計算 | 📝 規劃中（僅有領域文件，尚未寫程式碼） | 見下方詳述 |
+| 幹員專精工作量計算 | 🚧 開發中（資料層/API/雙分頁 UI 骨架已完成，計算引擎待實作） | 見下方詳述 |
 | 首頁 / 導覽 | 🔲 未開始 | 目前 `app/app.vue` 僅顯示 Nuxt 預設歡迎畫面（`<NuxtWelcome />`），尚無實際內容或導覽 |
 
 狀態圖例：📝 規劃中　🚧 開發中　✅ 已完成　🔲 未開始
@@ -13,7 +13,19 @@
 
 ## 幹員專精工作量計算
 
-**狀態：📝 規劃中**——完整業務規則已定案並記錄於 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md)，本節整理成面向使用者的功能描述，供實作時對照；程式碼實作、頁面/元件、輸入表單皆尚未開始。
+**狀態：🚧 開發中**——完整業務規則已定案並記錄於 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md)。
+
+### 目前實作範圍（第一階段：資料層 + API + 雙分頁 UI 骨架）
+
+已完成：
+- 輔訓幹員資料型別（`shared/types/support-operator.ts`）與 20 筆 mock 資料（`server/utils/support-operators.data.ts`，來源見 domain 文件第 8 節）。
+- `GET /api/support-operators`：依「幹員職業」「技能編號」query 篩選候選輔訓幹員。
+- `/mastery` 頁面：共用「職業／技能編號」選擇，切換「自動建議排程」（Tab A）／「手動模擬排程」（Tab B）兩個分頁，皆會即時從 API 取得篩選後的候選幹員清單。
+
+刻意**尚未實作**（下一階段工作）：
+- domain 文件第 3–6 節的實際工作量計算引擎（`RequiredWorkBase`、跨階段減半、`phase.work` 累加、完成條件）。
+- Tab A／Tab B 畫面上的「建議時間」「模擬排程結果」目前固定顯示「待計算」佔位文字，尚未帶入真實算式。
+- 「跳階模擬」（例如從專精二開始）時，上一階段是否已陪滿 5hr 觸發減半，目前規劃由使用者手動輸入，尚未實作。
 
 ### 功能目的
 
@@ -55,15 +67,15 @@ CompletedWork(N) = Σ phase.work
 階段 N 完成 ⇔ CompletedWork(N) ≥ RequiredWork(N)
 ```
 
-### 輸入資料（規劃）
+### 輸入資料
 
-- 每個專精階段的 phase 清單：陪同幹員、陪同時長。
-- 陪同幹員的效率加成（`phase.efficiencyBonus`）：**尚未有資料來源**——依領域文件第 8、9 節，這是「角色能力」資料，之後需要獨立的幹員資料表或 API 提供，目前規則文件本身不列舉數值。**這是本功能唯一的阻塞依賴**，需先確定幹員資料的取得方式（靜態資料檔／外部 API／手動輸入）才能完整實作。
+- 陪同幹員的效率加成（`phase.efficiencyBonus`）：**已有資料來源**，見上方「目前實作範圍」與 [domain 文件第 8 節](./domain/arknights_tools_init.md)。目前是 mock 資料，之後若要換成真的 Google Sheets API 或資料庫，只需替換 `server/api/support-operators.get.ts` 內部的資料來源。
+- 每個專精階段的 phase 清單（陪同幹員、陪同時長）：Tab B 目前只做到「選階段＋加入陪同幹員」，陪同時長輸入與 phase 排序尚未實作（屬於下一階段計算引擎的一部分）。
 
 ### 尚未收斂的部分（需求層面）
 
 以下摘自領域文件第 9 節，實作前應先確認，避免規則理解錯誤導致重工：
-- 陪同幹員的效率加成依幹員、依職業有不同數值（例如 Logos／艾麗妮平常 0%、對到專精職業 30%；烏爾比安不分職業 50%），資料表結構待設計。
+- ~~資料表結構待設計~~ 已解決，見上方「目前實作範圍」；「跳階模擬」時上一階段是否已陪滿 5hr 的判定方式仍待實作。
 - 陪同時間不連續（分好幾段陪同）時，「累積滿 5 小時」的判定是否有例外，尚未和實際遊戲行為交叉驗證。
 
 ### 錯誤情境（規劃）
@@ -76,4 +88,4 @@ CompletedWork(N) = Σ phase.work
 
 ## 首頁 / 導覽
 
-**狀態：🔲 未開始。** 目前無實際首頁內容，`app/app.vue` 僅 render `<NuxtRouteAnnouncer />` 與 `<NuxtWelcome />`（Nuxt 預設歡迎頁）。待「幹員專精工作量計算」功能有初步頁面後，應在此建立導覽入口並更新本節狀態。
+**狀態：🔲 未開始。** `app/app.vue` 已改為 render `<NuxtRouteAnnouncer />` 與 `<NuxtPage />`（因新增 `app/pages/` 而必須調整，見 [ARCHITECTURE.md](./ARCHITECTURE.md)），首頁內容移至 `app/pages/index.vue`，但目前仍只 render `<NuxtWelcome />` 佔位，尚無實際首頁內容或導覽選單（例如連到 `/mastery` 的連結）。待補上後應更新本節狀態。
