@@ -1,6 +1,7 @@
 import type {
   ArknightsClass,
   SkillPhase,
+  SupportOperator,
 } from '#shared/types/support-operator';
 import { getSupportOperators } from '../utils/support-operators.data';
 
@@ -24,7 +25,8 @@ const VALID_SKILLS = [1, 2, 3] as const;
  * - 帶 class：只保留 targetProfession 包含該職業的幹員。
  * - skill 類幹員必須 targetPhase 命中 targetSkill 才保留，否則整筆濾除（不帶 skill 時 skill 類一律濾除）；
  *   非 skill 類（critical/specific/general）不受此限制。
- * - 篩選後依 baseEfficiency + conditionEfficiency 由高到低排序回傳。
+ * - 篩選後計算 realEfficiency = baseEfficiency + conditionEfficiency（critical 類別的 5hr 生效條件尚未套用，
+ *   見 docs/domain/arknights_tools_init.md 第 9 節），並依此由高到低排序回傳。
  */
 export default defineEventHandler(async (event) => {
   const supportOperators = await getSupportOperators();
@@ -65,12 +67,14 @@ export default defineEventHandler(async (event) => {
     return true;
   });
 
-  const sortedData = filteredData
+  const candidates: SupportOperator[] = filteredData.map((operator) => ({
+    ...operator,
+    realEfficiency: operator.baseEfficiency + operator.conditionEfficiency,
+  }));
+
+  const sortedData = candidates
     .slice()
-    .sort(
-      (a, b) =>
-        b.baseEfficiency + b.conditionEfficiency - (a.baseEfficiency + a.conditionEfficiency),
-    );
+    .sort((a, b) => b.realEfficiency - a.realEfficiency);
 
   return { data: sortedData };
 });

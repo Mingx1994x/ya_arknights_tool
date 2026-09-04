@@ -1,6 +1,6 @@
 import type {
   ArknightsClass,
-  SupportOperatorRecord,
+  SupportOperator,
   SkillPhase,
 } from '#shared/types/support-operator';
 
@@ -18,6 +18,6 @@ export function useSupportOperators(
       skill: selectedSkillPhase.value,
     })),
     default: () => [],
-    transform: (response: { data: SupportOperatorRecord[] }) => response.data,
+    transform: (response: { data: SupportOperator[] }) => response.data,
   });
 }

@@ -4,6 +4,10 @@ import type { ArknightsClass, SkillPhase } from '#shared/types/support-operator'
 const selectedProfession = ref<ArknightsClass | undefined>(undefined)
 const selectedSkillPhase = ref<SkillPhase>(1)
 
+watch(selectedProfession, () => {
+  selectedSkillPhase.value = 1
+})
+
 const activeTab = ref<'auto' | 'manual'>('auto')
 </script>
 
@@ -37,12 +41,12 @@ const activeTab = ref<'auto' | 'manual'>('auto')
     <MasteryAutoPlanTab
       v-if="activeTab === 'auto'"
       :selected-profession="selectedProfession"
-      :selected-skill-phase="selectedSkillPhase"
+      v-model:selected-skill-phase="selectedSkillPhase"
     />
     <MasteryManualPlanTab
       v-else
       :selected-profession="selectedProfession"
-      :selected-skill-phase="selectedSkillPhase"
+      v-model:selected-skill-phase="selectedSkillPhase"
     />
   </div>
 </template>

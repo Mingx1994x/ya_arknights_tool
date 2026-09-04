@@ -47,3 +47,13 @@ export type SupportOperatorRecord = {
   conditionEfficiency: number;
   memo?: string;
 };
+
+/**
+ * GET /api/support-operators 篩選後回傳的候選幹員，多附上計算後的實際加成效率。
+ * realEfficiency = baseEfficiency + conditionEfficiency；
+ * critical 類別（Logos／艾麗妮）的 5hr 生效條件尚未套用，目前視為恆生效，
+ * 見 docs/domain/arknights_tools_init.md 第 9 節。
+ */
+export type SupportOperator = SupportOperatorRecord & {
+  realEfficiency: number;
+};

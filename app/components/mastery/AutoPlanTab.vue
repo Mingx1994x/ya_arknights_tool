@@ -1,27 +1,25 @@
 <script setup lang="ts">
-import type { ArknightsClass } from '#shared/types/support-operator'
+import type { ArknightsClass, SkillPhase } from '#shared/types/support-operator'
 
 const props = defineProps<{
   selectedProfession?: ArknightsClass
-  selectedSkillPhase?: 1 | 2 | 3
 }>()
 
-const startStage = ref<1 | 2 | 3>(1)
+const startStage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })
 
 const professionRef = toRef(props, 'selectedProfession')
-const skillPhaseRef = toRef(props, 'selectedSkillPhase')
 
-const { data: candidates, pending, error } = useSupportOperators(professionRef, skillPhaseRef)
+const { data: candidates, pending, error } = useSupportOperators(professionRef, startStage)
 
-const STAGE_LABELS: Record<1 | 2 | 3, string> = { 1: '專精一', 2: '專精二', 3: '專精三' }
+const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二', 3: '專精三' }
 
-const visibleStages = computed<(1 | 2 | 3)[]>(() =>
+const visibleStages = computed<SkillPhase[]>(() =>
   ([1, 2, 3] as const).filter((stage) => stage >= startStage.value),
 )
 
 const bestCandidate = computed(() => {
   if (!candidates.value.length) return null
-  return [...candidates.value].sort((a, b) => b.baseEfficiency - a.baseEfficiency)[0]
+  return [...candidates.value].sort((a, b) => b.realEfficiency - a.realEfficiency)[0]
 })
 </script>
 
@@ -59,7 +57,7 @@ const bestCandidate = computed(() => {
           <h3 class="text-lg font-semibold mb-2">{{ STAGE_LABELS[stage] }}</h3>
           <p v-if="bestCandidate">
             建議候選幹員：{{ bestCandidate.codeName
-            }}（+{{ bestCandidate.baseEfficiency }}%）
+            }}（+{{ bestCandidate.realEfficiency }}%）
           </p>
           <p v-else class="text-gray-500">目前沒有符合條件的候選幹員。</p>
           <p class="text-gray-400 italic">建議時間：待計算</p>

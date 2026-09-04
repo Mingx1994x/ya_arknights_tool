@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import type { ArknightsClass,SkillPhase,SupportOperatorRecord } from '#shared/types/support-operator'
+import type { ArknightsClass,SkillPhase,SupportOperator } from '#shared/types/support-operator'
 
 const props = defineProps<{
   selectedProfession?: ArknightsClass
-  selectedSkillPhase?: SkillPhase
 }>()
 
-const stage = ref<SkillPhase>(1)
+const stage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })
 
 const professionRef = toRef(props, 'selectedProfession')
-const skillPhaseRef = toRef(props, 'selectedSkillPhase')
 
-const { data: candidates, pending, error } = useSupportOperators(professionRef, skillPhaseRef)
+const { data: candidates, pending, error } = useSupportOperators(professionRef, stage)
 
 const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二', 3: '專精三' }
 
 /** 每個階段各自累積已加入的幹員清單（依加入順序排列，代表多個 phase）。 */
-const selectedByStage = reactive<Record<SkillPhase, SupportOperatorRecord[]>>({
+const selectedByStage = reactive<Record<SkillPhase, SupportOperator[]>>({
   1: [],
   2: [],
   3: [],
@@ -24,7 +22,7 @@ const selectedByStage = reactive<Record<SkillPhase, SupportOperatorRecord[]>>({
 
 const currentStageSelections = computed(() => selectedByStage[stage.value])
 
-function addOperator(operator: SupportOperatorRecord) {
+function addOperator(operator: SupportOperator) {
   selectedByStage[stage.value].push(operator)
 }
 
@@ -73,7 +71,7 @@ function removeOperator(index: number) {
               class="flex items-center justify-between gap-2"
             >
               <span
-                >{{ operator.codeName }}（+{{ operator.baseEfficiency
+                >{{ operator.codeName }}（+{{ operator.realEfficiency
 
                 }}%）</span
               >
@@ -102,7 +100,7 @@ function removeOperator(index: number) {
               class="flex items-center justify-between gap-2"
             >
               <span
-                >{{ operator.codeName }}（+{{ operator.baseEfficiency
+                >{{ operator.codeName }}（+{{ operator.realEfficiency
 
                 }}%）</span
               >

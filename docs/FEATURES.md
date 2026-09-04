@@ -27,7 +27,7 @@
 - domain 文件第 3–6 節的實際工作量計算引擎（`RequiredWorkBase`、跨階段減半、`phase.work` 累加、完成條件）。
 - Tab A／Tab B 畫面上的「建議時間」「模擬排程結果」目前固定顯示「待計算」佔位文字，尚未帶入真實算式。
 - 「跳階模擬」（例如從專精二開始）時，上一階段是否已陪滿 5hr 觸發減半，目前規劃由使用者手動輸入，尚未實作。
-- `category`（`critical`/`specific`/`general`/`skill`）四類各自何時套用 `baseEfficiency` 與 `conditionEfficiency` 的商業邏輯尚未定案（見下方「尚未收斂的部分」）。
+- `category`（`critical`/`specific`/`general`/`skill`）四類各自何時套用 `baseEfficiency` 與 `conditionEfficiency` 的完整商業邏輯尚未定案（見下方「尚未收斂的部分」）；`GET /api/support-operators` 已先實作簡化版本，一律回傳 `realEfficiency = baseEfficiency + conditionEfficiency`，`critical` 類別（Logos／艾麗妮）「陪滿 5hr 才生效」的條件尚未套用，暫時視為恆生效。
 
 ### 功能目的
 
@@ -77,7 +77,7 @@ CompletedWork(N) = Σ phase.work
 ### 尚未收斂的部分（需求層面）
 
 以下摘自領域文件第 9 節，實作前應先確認，避免規則理解錯誤導致重工：
-- 陪同幹員的效率加成依幹員、依職業有不同數值（例如 Logos／艾麗妮平常 0%、對到專精職業 30%；烏爾比安不分職業 50%）。資料表結構已定案（`SupportOperatorRecord`），但 `category` 四類如何套用 `baseEfficiency`／`conditionEfficiency` 的判定邏輯仍待設計；「跳階模擬」時上一階段是否已陪滿 5hr 的判定方式也仍待實作。
+- 陪同幹員的效率加成依幹員、依職業有不同數值（例如 Logos／艾麗妮平常 0%、對到專精職業 30%；烏爾比安不分職業 50%）。資料表結構已定案（`SupportOperatorRecord`），`category` 四類完整的 `baseEfficiency`／`conditionEfficiency` 判定邏輯仍待設計；目前 API 先以「一律相加」簡化，`critical` 的 5hr 條件、`specific`（例如烏爾比安備註的宿舍搭配條件）尚未實作判定。「跳階模擬」時上一階段是否已陪滿 5hr 的判定方式也仍待實作。
 - 陪同時間不連續（分好幾段陪同）時，「累積滿 5 小時」的判定是否有例外，尚未和實際遊戲行為交叉驗證。
 
 ### 錯誤情境（規劃）
