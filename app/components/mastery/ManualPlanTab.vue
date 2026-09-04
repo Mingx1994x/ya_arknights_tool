@@ -2,16 +2,16 @@
 import type { ArknightsClass,SkillPhase,SupportOperatorRecord } from '#shared/types/support-operator'
 
 const props = defineProps<{
-  selectedClass?: ArknightsClass
-  selectedSkill?: SkillPhase
+  selectedProfession?: ArknightsClass
+  selectedSkillPhase?: SkillPhase
 }>()
 
 const stage = ref<SkillPhase>(1)
 
-const classRef = toRef(props, 'selectedClass')
-const skillRef = toRef(props, 'selectedSkill')
+const professionRef = toRef(props, 'selectedProfession')
+const skillPhaseRef = toRef(props, 'selectedSkillPhase')
 
-const { data: candidates, pending, error } = useSupportOperators(classRef, skillRef)
+const { data: candidates, pending, error } = useSupportOperators(professionRef, skillPhaseRef)
 
 const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二', 3: '專精三' }
 
@@ -47,7 +47,7 @@ function removeOperator(index: number) {
       </select>
     </label>
 
-    <p v-if="!props.selectedClass" class="text-gray-500">
+    <p v-if="!props.selectedProfession" class="text-gray-500">
       請先選擇幹員職業以取得候選幹員清單。
     </p>
     <template v-else>

@@ -9,13 +9,13 @@ import type {
  * class/skill 變動時會自動重新查詢。
  */
 export function useSupportOperators(
-  selectedClass: Ref<ArknightsClass | undefined>,
-  selectedSkill: Ref<SkillPhase | undefined>,
+  selectedProfession: Ref<ArknightsClass | undefined>,
+  selectedSkillPhase: Ref<SkillPhase | undefined>,
 ) {
   return useFetch('/api/support-operators', {
     query: computed(() => ({
-      class: selectedClass.value,
-      skill: selectedSkill.value,
+      class: selectedProfession.value,
+      skill: selectedSkillPhase.value,
     })),
     default: () => [],
     transform: (response: { data: SupportOperatorRecord[] }) => response.data,
