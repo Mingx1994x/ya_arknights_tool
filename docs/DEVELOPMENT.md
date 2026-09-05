@@ -96,11 +96,11 @@ CI 與 CD 由不同工具負責，兩者不衝突：
  * 計算單一 phase 在陪同效率加成下實際產生的工作量。
  *
  * @param durationHours - 該 phase 實際經過的時間（小時，小數）
- * @param efficiencyBonusPercent - 陪同幹員提供的效率加成（百分比，例如 30 代表 +30%）
+ * @param efficiencyPercent - 陪同幹員在這次陪同中的效率（百分比，例如 30 代表 +30%；未命中加成條件時可能為 0）
  * @returns 該 phase 換算後的工作量（小時，小數）
  */
-export function calcPhaseWork(durationHours: number, efficiencyBonusPercent: number): number {
-  return durationHours * (1 + efficiencyBonusPercent / 100)
+export function calcPhaseWork(durationHours: number, efficiencyPercent: number): number {
+  return durationHours * (1 + efficiencyPercent / 100)
 }
 ```
 

@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import type { ArknightsClass,SkillPhase,SupportOperator } from '#shared/types/support-operator'
-import type { MasteryPhaseSegment, MasteryStageResult } from '~/utils/mastery'
+import type { ArknightsClass, SkillPhase, SupportOperator } from '#shared/types/support-operator'
+import {
+  CRITICAL_DEFAULT_DURATION_HOURS,
+  calcDurationForWork,
+  getRequiredWorkUnderDefaultStrategy,
+  planCriticalCompanionStage,
+} from '~/utils/mastery'
 
 const props = defineProps<{
   selectedProfession?: ArknightsClass
@@ -16,52 +21,88 @@ const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二
 
 /** groups[0] 必為目前下拉選到的階段（API 以 stage.value 當 fromSkill，回傳陣列第一筆即該階段）。 */
 const currentStageCandidates = computed(() => groups.value[0]?.candidates ?? [])
+const criticalCandidates = computed(() => currentStageCandidates.value.filter((c) => c.category === 'critical'))
+const otherCandidates = computed(() => currentStageCandidates.value.filter((c) => c.category !== 'critical'))
 
-/** 一筆陪同紀錄，對應領域文件第 2 節的「phase」（陪同幹員＋經過時間）。 */
-type ManualPhaseEntry = {
-  operator: SupportOperator
-  hours: number
-  minutes: number
+/**
+ * 預設策略：專精一、二各安排一位 critical 幹員陪滿 ≥5hr，兩階段皆觸發下一階段減半；
+ * 專精三沒有下一階段可以減半，因此不安排 critical 幹員（見 docs/domain 第 4／9 節）。
+ */
+const requiredWorkByPhase: Record<SkillPhase, number> = {
+  1: getRequiredWorkUnderDefaultStrategy(1),
+  2: getRequiredWorkUnderDefaultStrategy(2),
+  3: getRequiredWorkUnderDefaultStrategy(3),
 }
 
-/** 每個階段各自累積已加入的陪同紀錄（依加入順序排列，代表多個 phase）。 */
-const selectedByStage = reactive<Record<SkillPhase, ManualPhaseEntry[]>>({
-  1: [],
-  2: [],
-  3: [],
-})
-
-const currentStageSelections = computed(() => selectedByStage[stage.value])
-
-function addOperator(operator: SupportOperator) {
-  selectedByStage[stage.value].push({ operator, hours: 0, minutes: 0 })
+type StagePlanState = {
+  criticalOperatorId: string
+  criticalHours: number
+  criticalMinutes: number
+  otherOperatorId: string
 }
 
-function removeOperator(index: number) {
-  selectedByStage[stage.value].splice(index, 1)
-}
-
-function entryToSegment(entry: ManualPhaseEntry): MasteryPhaseSegment {
+function createDefaultPlanState(): StagePlanState {
   return {
-    durationHours: entry.hours + entry.minutes / 60,
-    efficiencyBonusPercent: entry.operator.realEfficiency,
-    isCritical: entry.operator.category === 'critical',
+    criticalOperatorId: '',
+    criticalHours: Math.floor(CRITICAL_DEFAULT_DURATION_HOURS),
+    criticalMinutes: Math.round((CRITICAL_DEFAULT_DURATION_HOURS % 1) * 60),
+    otherOperatorId: '',
   }
 }
 
-/**
- * 固定計算專精一～三：`selectedByStage` 本身就會保留三個階段各自的陪同紀錄，
- * 不受目前下拉選到哪個階段影響；起始的上一階段一律視為未觸發減半（專精一恆不減半）。
- *
- * 已知限制：若使用者想跳過在本工具建立專精一（或一、二）的紀錄、直接從後面階段開始，
- * 目前無法手動指定「上一階段是否已陪滿 5hr」，見 docs/domain/arknights_tools_init.md 第 9 節。
- */
-const stageResults = computed<MasteryStageResult[]>(() =>
-  evaluateStages([1, 2, 3], false, (phase) => selectedByStage[phase].map(entryToSegment)),
+const planByStage = reactive<Record<SkillPhase, StagePlanState>>({
+  1: createDefaultPlanState(),
+  2: createDefaultPlanState(),
+  3: createDefaultPlanState(),
+})
+
+const currentState = computed(() => planByStage[stage.value])
+const needsCriticalCompanion = computed(() => stage.value !== 3)
+
+const criticalOperator = computed(() =>
+  criticalCandidates.value.find((c) => c.id === currentState.value.criticalOperatorId),
+)
+const otherOperator = computed(() => {
+  const pool = needsCriticalCompanion.value ? otherCandidates.value : currentStageCandidates.value
+  return pool.find((c) => c.id === currentState.value.otherOperatorId)
+})
+
+const rawCriticalDurationHours = computed(
+  () => currentState.value.criticalHours + currentState.value.criticalMinutes / 60,
 )
 
-const stageResultByPhase = computed(() => new Map(stageResults.value.map((r) => [r.phase, r])))
-const currentStageResult = computed(() => stageResultByPhase.value.get(stage.value))
+/** critical 幹員陪同時長上限：超過會讓 criticalWork 超過 RequiredWork(N)，正常遊戲數值不會需要用到，僅供輸入防呆。 */
+const maxCriticalDurationHours = computed(() => {
+  if (!criticalOperator.value) return null
+  return calcDurationForWork(requiredWorkByPhase[stage.value], criticalOperator.value.realEfficiency)
+})
+
+const isCriticalDurationClamped = computed(
+  () => maxCriticalDurationHours.value !== null && rawCriticalDurationHours.value > maxCriticalDurationHours.value,
+)
+
+const effectiveCriticalDurationHours = computed(() =>
+  maxCriticalDurationHours.value !== null
+    ? Math.min(rawCriticalDurationHours.value, maxCriticalDurationHours.value)
+    : rawCriticalDurationHours.value,
+)
+
+/** 專精一／二：critical 幹員 + 另一位陪練幹員的組合結果。 */
+const criticalPlan = computed(() => {
+  if (!needsCriticalCompanion.value || !criticalOperator.value) return null
+  return planCriticalCompanionStage(
+    requiredWorkByPhase[stage.value],
+    effectiveCriticalDurationHours.value,
+    criticalOperator.value.realEfficiency,
+    otherOperator.value?.realEfficiency ?? 0,
+  )
+})
+
+/** 專精三：單一陪練幹員需要的陪同時長。 */
+const soloDurationHours = computed(() => {
+  if (needsCriticalCompanion.value || !otherOperator.value) return null
+  return calcDurationForWork(requiredWorkByPhase[3], otherOperator.value.realEfficiency)
+})
 </script>
 
 <template>
@@ -86,121 +127,106 @@ const currentStageResult = computed(() => stageResultByPhase.value.get(stage.val
       <p v-else-if="error" class="text-red-600">
         候選幹員查詢失敗，請稍後再試。
       </p>
-      <div
+      <section
         v-else
-        class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]"
+        class="p-4 border border-gray-200 rounded-lg flex flex-col gap-4 max-w-md"
       >
-        <section class="p-4 border border-gray-200 rounded-lg">
-          <h3 class="text-lg font-semibold mb-2">
-            候選幹員（{{ STAGE_LABELS[stage] }}）
-          </h3>
-          <p v-if="!currentStageCandidates.length" class="text-gray-500">
-            目前沒有符合條件的候選幹員。
-          </p>
-          <ul v-else class="flex flex-col gap-2 m-0 p-0 list-none">
-            <li
-              v-for="operator in currentStageCandidates"
-              :key="operator.id"
-              class="flex items-center justify-between gap-2"
+        <h3 class="text-lg font-semibold">{{ STAGE_LABELS[stage] }}</h3>
+        <p class="text-sm text-gray-500">
+          所需工作量：{{ formatHoursAsHm(requiredWorkByPhase[stage]) }}
+        </p>
+
+        <template v-if="needsCriticalCompanion">
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-semibold">Critical 幹員（Logos／艾麗妮）</span>
+            <select
+              v-model="currentState.criticalOperatorId"
+              class="px-2.5 py-1.5 border border-gray-300 rounded"
             >
-              <span
-                >{{ operator.codeName }}（+{{ operator.realEfficiency
+              <option value="">請選擇</option>
+              <option v-for="c in criticalCandidates" :key="c.id" :value="c.id">
+                {{ c.codeName }}（+{{ c.realEfficiency }}%）
+              </option>
+            </select>
+          </label>
 
-                }}%）</span
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-semibold">陪同時長（下限 5 小時，預設含 5 分鐘操作緩衝）</span>
+            <span class="flex items-center gap-1">
+              <input
+                v-model.number="currentState.criticalHours"
+                type="number"
+                min="0"
+                class="w-16 px-1.5 py-1 border border-gray-300 rounded"
               >
-              <button
-                type="button"
-                class="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
-                @click="addOperator(operator)"
+              小時
+              <input
+                v-model.number="currentState.criticalMinutes"
+                type="number"
+                min="0"
+                max="59"
+                class="w-16 px-1.5 py-1 border border-gray-300 rounded"
               >
-                加入
-              </button>
-            </li>
-          </ul>
-        </section>
-
-        <section class="p-4 border border-gray-200 rounded-lg">
-          <h3 class="text-lg font-semibold mb-2">
-            已選幹員（{{ STAGE_LABELS[stage] }}）
-          </h3>
-          <p v-if="!currentStageSelections.length" class="text-gray-500">
-            尚未加入任何幹員。
+              分
+            </span>
+          </label>
+          <p v-if="isCriticalDurationClamped" class="text-sm text-amber-600">
+            已達上限，超過會讓 critical 幹員單獨補滿所需工作量，實際計算已自動改用
+            {{ formatHoursAsHm(effectiveCriticalDurationHours) }}。
           </p>
-          <ol v-else class="flex flex-col gap-2 m-0 p-0 list-none">
-            <li
-              v-for="(entry, index) in currentStageSelections"
-              :key="`${entry.operator.id}-${index}`"
-              class="flex items-center justify-between gap-2"
-            >
-              <span
-                >{{ entry.operator.codeName }}（+{{ entry.operator.realEfficiency }}%）</span
-              >
-              <span class="flex items-center gap-1 text-sm">
-                <input
-                  v-model.number="entry.hours"
-                  type="number"
-                  min="0"
-                  class="w-14 px-1.5 py-1 border border-gray-300 rounded"
-                >
-                小時
-                <input
-                  v-model.number="entry.minutes"
-                  type="number"
-                  min="0"
-                  max="59"
-                  class="w-14 px-1.5 py-1 border border-gray-300 rounded"
-                >
-                分
-              </span>
-              <button
-                type="button"
-                class="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
-                @click="removeOperator(index)"
-              >
-                移除
-              </button>
-            </li>
-          </ol>
 
-          <template v-if="currentStageResult">
-            <hr class="my-4 border-gray-200">
-            <p class="text-sm">
-              所需工作量：{{ formatHoursAsHm(currentStageResult.requiredWork) }}
-              <span v-if="currentStageResult.requiredWork < currentStageResult.requiredWorkBase">（已套用跨階段減半）</span>
+          <template v-if="criticalPlan">
+            <p class="text-sm text-gray-500">
+              Critical 幹員這段工作量：{{ formatHoursAsHm(criticalPlan.criticalWork) }}
             </p>
-            <p class="text-sm">已完成工作量：{{ formatHoursAsHm(currentStageResult.completedWork) }}</p>
-            <p class="font-medium" :class="currentStageResult.isComplete ? 'text-green-600' : 'text-gray-700'">
-              {{ currentStageResult.isComplete ? '已達成完成條件' : '尚未達成完成條件' }}
+            <p v-if="criticalPlan.triggersNextHalving" class="text-sm text-green-600">
+              陪滿 5 小時，下一階段所需工作量將減半
             </p>
-            <p v-if="currentStageResult.triggersNextHalving" class="text-sm text-green-600">
-              陪同 Logos／艾麗妮已滿 5 小時，下一階段所需工作量將減半
+
+            <label class="flex flex-col gap-1 text-sm">
+              <span class="font-semibold">另一位陪練幹員</span>
+              <select
+                v-model="currentState.otherOperatorId"
+                class="px-2.5 py-1.5 border border-gray-300 rounded"
+              >
+                <option value="">請選擇</option>
+                <option v-for="c in otherCandidates" :key="c.id" :value="c.id">
+                  {{ c.codeName }}（+{{ c.realEfficiency }}%）
+                </option>
+              </select>
+            </label>
+
+            <p v-if="!currentState.otherOperatorId" class="text-gray-500">請選擇另一位陪練幹員以算出建議陪同時間。</p>
+            <p v-else class="font-medium">
+              建議陪同時間：{{
+                criticalPlan.otherOperatorDurationHours != null
+                  ? formatHoursAsHm(criticalPlan.otherOperatorDurationHours)
+                  : '不需要'
+              }}
             </p>
           </template>
-        </section>
-      </div>
+          <p v-else class="text-gray-500">請先選擇 Critical 幹員。</p>
+        </template>
 
-      <section class="p-4 border border-gray-200 rounded-lg">
-        <h3 class="text-lg font-semibold mb-2">三階段總覽</h3>
-        <table class="w-full text-sm border-collapse">
-          <thead>
-            <tr class="text-left border-b border-gray-200">
-              <th class="py-1 pr-4">階段</th>
-              <th class="py-1 pr-4">所需工作量</th>
-              <th class="py-1 pr-4">已完成工作量</th>
-              <th class="py-1">狀態</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="result in stageResults" :key="result.phase" class="border-b border-gray-100">
-              <td class="py-1 pr-4">{{ STAGE_LABELS[result.phase] }}</td>
-              <td class="py-1 pr-4">{{ formatHoursAsHm(result.requiredWork) }}</td>
-              <td class="py-1 pr-4">{{ formatHoursAsHm(result.completedWork) }}</td>
-              <td class="py-1" :class="result.isComplete ? 'text-green-600' : 'text-gray-500'">
-                {{ result.isComplete ? '已達成' : '未達成' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <template v-else>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-semibold">陪練幹員</span>
+            <select
+              v-model="currentState.otherOperatorId"
+              class="px-2.5 py-1.5 border border-gray-300 rounded"
+            >
+              <option value="">請選擇</option>
+              <option v-for="c in currentStageCandidates" :key="c.id" :value="c.id">
+                {{ c.codeName }}（+{{ c.realEfficiency }}%）
+              </option>
+            </select>
+          </label>
+
+          <p v-if="soloDurationHours == null" class="text-gray-500">請選擇陪練幹員以算出建議陪同時間。</p>
+          <p v-else class="font-medium">
+            建議陪同時間：{{ formatHoursAsHm(soloDurationHours) }}
+          </p>
+        </template>
       </section>
     </template>
   </div>

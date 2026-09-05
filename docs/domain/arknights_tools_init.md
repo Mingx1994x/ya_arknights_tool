@@ -124,12 +124,15 @@ const masteryLevels = {
 
 **陪同幹員效率加成資料現況**：20 筆輔訓幹員資料（謄寫自 Google Sheet「方舟專精計時器」`附件:訓練幹員` 分頁）已落地於 `server/utils/support-operators.data.ts`，型別定義在 `shared/types/support-operator.ts`，透過 `GET /api/support-operators`（支援 `class`／`fromSkill` query 篩選）提供給前端。這份資料本身刻意不寫進本文件（維持「角色能力資料」與「業務規則公式」分離的立場，見下方第 9 節），本文件只記錄公式規則；實際數值請以程式碼中的資料為準。
 
-**已實作**：本節公式（`RequiredWorkBase`／跨階段減半／`phase.work` 累加／完成條件）已落地於 `app/utils/mastery.ts`（純函式，數值已對照第 7 節範例驗算），並已串接進 `/mastery` 頁面：「手動模擬排程」（`ManualPlanTab.vue`）依使用者輸入的陪同時長即時算出各階段 `CompletedWork`／是否達成／是否觸發下一階段減半；「自動建議排程」（`AutoPlanTab.vue`）依各階段目前最高效率候選反推建議陪同時長。見 [FEATURES.md](../FEATURES.md) 的實作範圍說明。
+**已實作**：本節公式（`RequiredWorkBase`／跨階段減半／`phase.work`）已落地於 `app/utils/mastery.ts`（純函式，數值已對照第 7 節範例驗算），並已串接進 `/mastery` 頁面：「手動模擬排程」（`ManualPlanTab.vue`）採「critical 幹員＋另一位陪練幹員」的預設策略——專精一、二各安排一位 critical 幹員陪滿 ≥5hr 觸發下一階段減半，反推另一位陪練幹員需要陪同多久才能補滿 `RequiredWork(N)`；專精三沒有下一階段可減半，不安排 critical 幹員，直接反推單一陪練幹員的所需時長。「自動建議排程」（`AutoPlanTab.vue`）採相同預設策略，差別是候選幹員不用手動選，改成自動挑各分類（critical／其他）裡效率最高的。見 [FEATURES.md](../FEATURES.md) 的實作範圍說明。
 
 ---
 
 ## 9. 尚未收斂的部分
 
 - ~~陪同幹員各自的效率加成資料來源未定~~ **已解決**：資料表結構與來源見上方第 8 節。
-- **跳階模擬**：`ManualPlanTab.vue` 固定計算專精一～三（`app/utils/mastery.ts` 的 `evaluateStages`），起始一律假設「專精一之前」未觸發減半。若使用者想略過在本工具內建立專精一（或一、二）的陪同紀錄、直接從後面階段開始模擬，目前無法手動指定「上一階段是否已陪滿 5hr」，會被視為未觸發減半（保守估計）。`AutoPlanTab.vue` 的 `suggestStagePlans` 在 `fromPhase > 1` 時也是相同假設。這牽涉到額外的 UX 設計決策（獨立勾選框該放在哪一層、是否要跟現有「起始階段」下拉共用同一個變數的語意衝突），留待下一個計畫處理。
-- `usedLogosOrElysium5hr(N)` 目前定義是「該階段陪同時間累積滿 5 小時」；如果陪同時間不連續（分好幾段陪同），累積算法是否有例外，尚未和實際遊戲行為交叉驗證，未來如果發現有出入需要再更新本文件。程式碼中對應的判斷邏輯是把該階段所有 `category === 'critical'` 的陪同時長加總（`calcCriticalHours`），跟 `HALVING_THRESHOLD_HOURS`（5 小時）比較，與此定義一致。
+- **跳階模擬**：
+  - **`AutoPlanTab.vue`（已解決）**：`suggestStagePlans` 把「使用者選擇的起始階段」（`phases[0]`）視為宣告式的假設起點，永遠當作未減半；之後的階段依序視為都套用了 critical 幹員策略而觸發減半（`getRequiredWork(phase, phase > startPhase)`，不是寫死的 `phase > 1`）。例如起始階段選專精二：專精二視為未減半（顯示完整 `RequiredWorkBase(2)`），專精三則視為專精二已觸發減半。這不是從使用者實際填的資料推測，純粹是「選了哪一階段當起點，那一階段就定義為未減半」的宣告式規則。
+  - **`ManualPlanTab.vue`（尚未解決，暫緩）**：目前仍固定假設專精一、二都會安排 critical 幹員陪滿 ≥5hr（`getRequiredWorkUnderDefaultStrategy` 內部寫死 `phase > 1`），沒有套用上述「相對於起始階段」的規則，也還沒有 `AutoPlanTab.vue` 那種「一次列出起始階段→專精三所有階段」的排版（目前一次只顯示下拉選到的單一階段）。這兩個分頁的設計已經分岔，之後要重新設計 `ManualPlanTab.vue` 時再套用同樣的「相對起始階段」規則與排版方式。
+- `usedLogosOrElysium5hr(N)` 目前定義是「該階段陪同時間累積滿 5 小時」；如果陪同時間不連續（分好幾段陪同），累積算法是否有例外，尚未和實際遊戲行為交叉驗證，未來如果發現有出入需要再更新本文件。程式碼中對應的判斷邏輯是直接比較「critical 幹員這段陪同時長」是否 `≥ HALVING_THRESHOLD_HOURS`（5 小時）（`app/utils/mastery.ts` 的 `planCriticalCompanionStage`），因為目前的預設策略下 critical 幹員本來就是單一一段陪同，尚未涉及「多段陪同時間加總」的情境。
+- **critical 幹員的職業篩選**：`category === 'critical'` 的幹員（Logos／艾麗妮）不受職業篩選限制，任何職業都會出現在候選名單裡；`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入 `realEfficiency`，未命中則只有 `baseEfficiency`（目前兩者皆為 0，因此未命中職業時 `realEfficiency = 0`，但陪滿 5hr 一樣觸發下一階段減半）。已於 `server/utils/support-operator-candidates.ts` 的 `resolveCriticalCandidates` 實作。
