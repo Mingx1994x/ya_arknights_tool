@@ -2,43 +2,45 @@
 
 ## 現況說明
 
-**專案目前尚未設定任何測試框架。** `package.json` 沒有 `test` script，也沒有安裝 Vitest、`@nuxt/test-utils` 或其他測試相關依賴。本文件先記錄建議做法，待實際引入測試框架後，需回來補上「測試檔案表」「執行順序與依賴關係」等章節的實際內容。
+**已安裝 Vitest**（`pnpm add -D vitest`），`package.json` 已有 `test`（`vitest run`）／`test:watch`（`vitest`）script。測試檔案獨立於 `tests/` 目錄管理，不與被測程式碼放在同一個資料夾（見下方「測試目錄結構」）。目前只有 `app/utils/mastery.ts` 的純函式單元測試（`tests/unit/mastery.test.ts`），尚未安裝 `@nuxt/test-utils`／`@vue/test-utils`／`happy-dom`，composable／元件測試仍是規劃中，需要時再引入。
+
+## 測試目錄結構
+
+測試檔案一律放在專案根目錄的 `tests/` 底下，依測試類型分子目錄，不與 `app/`／`server/` 下的原始碼混在一起：
+
+```
+tests/
+├── unit/          # 純函式單元測試（不依賴 Vue／DOM），例如 tests/unit/mastery.test.ts
+├── composables/   # Composable 測試（尚未開始）
+└── components/    # 元件測試（尚未開始）
+```
+
+檔名與被測檔同名、加 `.test.ts` 後綴（例如 `app/utils/mastery.ts` → `tests/unit/mastery.test.ts`），內部再用相對路徑 `import` 回原始碼（Vitest 預設會掃描專案內所有 `**/*.test.ts`，不需額外設定 `include`）。
 
 ## 建議測試框架
 
-Nuxt 官方推薦組合，尚未安裝，第一次新增測試前需先引入：
+Composable／元件測試仍待引入時，補裝：
 
 ```bash
-pnpm add -D vitest @nuxt/test-utils @vue/test-utils happy-dom
-```
-
-並在 `package.json` 補上：
-
-```json
-{
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
-  }
-}
+pnpm add -D @nuxt/test-utils @vue/test-utils happy-dom
 ```
 
 ## 建議測試分層
 
 依 [FEATURES.md](./FEATURES.md) 目前唯一規劃中的功能（幹員專精工作量計算）為例，優先順序建議如下：
 
-1. **純函式單元測試（優先度最高）**：`app/utils/` 下的工作量計算公式（`RequiredWorkBase`、跨階段減半、`phase.work` 累加、完成條件判斷）不依賴 Vue 或 DOM，最容易撰寫也最該優先補齊，直接對照 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 7 節的範例驗算數字作為測試案例（該節已提供三個階段的完整期望值，可直接當作測資）。
-2. **Composable 測試**：`app/composables/` 若封裝了響應式狀態，使用 `@vue/test-utils` 或 Vitest 搭配 Vue 的 reactivity API 測試。
-3. **元件測試**：使用 `@nuxt/test-utils` 提供的 `mountSuspended` 等工具，測試互動與渲染結果。
+1. **純函式單元測試（已完成第一批）**：`app/utils/mastery.ts` 的工作量計算公式（`RequiredWorkBase`、跨階段減半、`phase.work` 累加、完成條件判斷）不依賴 Vue 或 DOM，對照 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 7 節的範例驗算數字作為測試案例，見 `tests/unit/mastery.test.ts`。
+2. **Composable 測試（尚未開始）**：`app/composables/` 若封裝了響應式狀態，使用 `@vue/test-utils` 或 Vitest 搭配 Vue 的 reactivity API 測試，放在 `tests/composables/`。
+3. **元件測試（尚未開始）**：使用 `@nuxt/test-utils` 提供的 `mountSuspended` 等工具，測試互動與渲染結果，放在 `tests/components/`。
 
 ## 撰寫新測試的步驟與範例
 
-以領域文件第 7 節的範例驗算為例，未來 `app/utils/mastery.ts` 的測試可寫成：
+以領域文件第 7 節的範例驗算為例，`app/utils/mastery.ts` 的測試寫法（節錄自 `tests/unit/mastery.test.ts`）：
 
 ```ts
-// app/utils/mastery.test.ts
+// tests/unit/mastery.test.ts
 import { describe, expect, it } from 'vitest'
-import { calcPhaseWork } from './mastery'
+import { calcPhaseWork } from '../../app/utils/mastery'
 
 describe('calcPhaseWork', () => {
   it('依效率加成（含 5% 基地加成）換算 phase 工作量', () => {
@@ -49,7 +51,7 @@ describe('calcPhaseWork', () => {
 })
 ```
 
-命名慣例：測試檔與被測檔同目錄、同名加 `.test.ts` 後綴（Vitest 預設會掃描 `**/*.test.ts`）。
+命名慣例：測試檔放在 `tests/<測試類型>/` 底下、與被測檔同名並加 `.test.ts` 後綴，用相對路徑 import 回 `app/`／`server/` 下的原始碼（見上方「測試目錄結構」）。
 
 ## 常見陷阱
 
@@ -59,4 +61,6 @@ describe('calcPhaseWork', () => {
 
 ## 測試檔案表 / 執行順序與依賴關係
 
-**尚無測試檔案。** 待新增第一批測試後，於此列出檔案清單、彼此相依關係（例如是否需要特定 mock 資料、是否需要依序執行）。
+| 檔案 | 依賴 | 說明 |
+| --- | --- | --- |
+| `tests/unit/mastery.test.ts` | `app/utils/mastery.ts`（無 mock，不需特定執行順序） | 對照 `docs/domain/arknights_tools_init.md` 第 7 節範例驗算，涵蓋 `getRequiredWorkBase`／`getRequiredWork`／`calcPhaseWork`／`calcCompletedWork`／`calcCriticalHours`／`evaluateStages`／`suggestStagePlans`／`formatHoursAsHm` |

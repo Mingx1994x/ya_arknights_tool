@@ -15,6 +15,7 @@ Nuxt 4 依「目錄位置」自動決定行為，命名規則沿用 Nuxt 官方�
 | Server 工具函式／資料 | `server/utils/` | camelCase 或 kebab-case 檔名，server-only，Nitro 自動匯入，不需手動 `import` | `server/utils/support-operators.data.ts` |
 | 共用型別（client + server） | `shared/types/` | kebab-case 檔名，型別本身用 PascalCase，透過 `#shared/...` 路徑或 auto-import 使用 | `shared/types/support-operator.ts` → `SupportOperatorRecord` |
 | 型別定義（僅前端使用） | 建議集中於 `app/types/` 或與功能同目錄的 `*.types.ts` | camelCase 或 kebab-case 檔名，型別本身用 PascalCase | `MasteryPhase` |
+| 測試檔案 | 專案根目錄 `tests/`，依測試類型分子目錄（`unit/`／`composables/`／`components/`），獨立於被測程式碼，見 [TESTING.md](./TESTING.md) | 與被測檔同名，加 `.test.ts` 後綴，用相對路徑 import 回原始碼 | `app/utils/mastery.ts` → `tests/unit/mastery.test.ts` |
 
 > 上述目錄多數尚未在專案中建立；第一次新增某類型檔案時，直接依此表建立對應目錄即可，Nuxt 會自動掃描並套用慣例，不需額外註冊。
 
@@ -35,7 +36,7 @@ Nuxt 4 依「目錄位置」自動決定行為，命名規則沿用 Nuxt 官方�
 ### 新增 Composable（跨頁共用邏輯）
 
 1. 於 `app/composables/useXxx.ts` 建立，函式回傳需要暴露的 state 與方法。
-2. 純運算邏輯（不依賴 Vue 響應式，例如 [docs/domain](./domain/) 描述的工作量計算公式）優先寫成 `app/utils/` 下的純函式並附單元測試，composable 只負責串接 Vue 響應式狀態，方便測試與重用。
+2. 純運算邏輯（不依賴 Vue 響應式，例如 [docs/domain](./domain/) 描述的工作量計算公式）優先寫成 `app/utils/` 下的純函式，並在 `tests/unit/` 補上對應單元測試（見 [TESTING.md](./TESTING.md)），composable 只負責串接 Vue 響應式狀態，方便測試與重用。
 
 ### 新增 API（`server/`）
 

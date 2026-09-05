@@ -2,7 +2,7 @@
 
 ## 現況說明
 
-本專案原為 Nuxt 4 官方最小起始模板；「幹員專精試算」功能開始實作後，已新增 `app/pages/`、`app/components/`、`app/composables/`、`app/utils/` 等前端目錄，以及 `server/`、`shared/` 目錄——後端已串接 Google Sheets API v4 讀取真實支援幹員資料（取代先前的 mock 資料），前端也已完成專精工作量計算引擎並串接進兩個分頁。本文件記錄**現有結構**，尚未建立的部分（資料庫、認證等）仍標註「尚未建立」，待實際新增時必須回來更新本文件（見 [DEVELOPMENT.md](./DEVELOPMENT.md) 的關鍵規則）。
+本專案原為 Nuxt 4 官方最小起始模板；「幹員專精試算」功能開始實作後，已新增 `app/pages/`、`app/components/`、`app/composables/`、`app/utils/` 等前端目錄，以及 `server/`、`shared/` 目錄——後端已串接 Google Sheets API v4 讀取真實支援幹員資料（取代先前的 mock 資料），前端也已完成專精工作量計算引擎並串接進兩個分頁。專案根目錄另有獨立的 `tests/` 目錄存放測試檔案（見下方目錄結構與 [TESTING.md](./TESTING.md)），不與 `app/`／`server/` 下的原始碼混放。本文件記錄**現有結構**，尚未建立的部分（資料庫、認證等）仍標註「尚未建立」，待實際新增時必須回來更新本文件（見 [DEVELOPMENT.md](./DEVELOPMENT.md) 的關鍵規則）。
 
 ## 目錄結構
 
@@ -37,6 +37,9 @@ ya-arknights-tools/
 ├── public/
 │   ├── favicon.ico          # 網站 favicon
 │   └── robots.txt           # 允許所有 User-Agent 爬取（見下方內容）
+├── tests/
+│   └── unit/
+│       └── mastery.test.ts   # app/utils/mastery.ts 的 Vitest 單元測試，見 docs/TESTING.md
 ├── .env.example              # 環境變數範例（不含真實密鑰）
 ├── docs/
 │   ├── README.md             # 項目介紹
