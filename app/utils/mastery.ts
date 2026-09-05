@@ -30,14 +30,6 @@ export function getRequiredWork(phase: SkillPhase, previousPhaseTriggeredHalving
 }
 
 /**
- * 預設策略（領域文件第 4／9 節）：專精一、二各安排一位 critical 幹員陪滿 ≥5hr 觸發下一階段減半，
- * 因此在此策略下 `RequiredWork(2)`／`RequiredWork(3)` 必定套用減半，不需要外部傳入「上一階段是否觸發」。
- */
-export function getRequiredWorkUnderDefaultStrategy(phase: SkillPhase): number {
-  return getRequiredWork(phase, phase > 1)
-}
-
-/**
  * 領域文件第 5 節：單一 phase 依當下效率加成換算後的工作量。
  *
  * @param durationHours - 該 phase 實際經過的時間（小時，小數）
