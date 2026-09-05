@@ -4,7 +4,7 @@
 
 | 功能 | 狀態 | 說明 |
 | --- | --- | --- |
-| 幹員專精工作量計算 | 🚧 開發中（資料層/API/雙分頁 UI 骨架已完成，計算引擎待實作） | 見下方詳述 |
+| 幹員專精工作量計算 | 🚧 開發中（雙分頁 UI 骨架、支援幹員資料層／API 皆已完成，但兩者資料形狀尚未對齊，見下方；計算引擎待實作） | 見下方詳述 |
 | 首頁 / 導覽 | 🔲 未開始 | 目前 `app/app.vue` 僅顯示 Nuxt 預設歡迎畫面（`<NuxtWelcome />`），尚無實際內容或導覽 |
 
 狀態圖例：📝 規劃中　🚧 開發中　✅ 已完成　🔲 未開始
@@ -15,17 +15,19 @@
 
 **狀態：🚧 開發中**——完整業務規則已定案並記錄於 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md)。
 
-### 目前實作範圍（第一階段：資料層 + API + 雙分頁 UI 骨架）
+### 目前實作範圍
 
 已完成：
-- 輔訓幹員資料型別（`shared/types/support-operator.ts`）與 20 筆 mock 資料（`server/utils/support-operators.data.ts`，來源見 domain 文件第 8 節）。
-- `GET /api/support-operators`：依「幹員職業」「技能編號」query 篩選候選輔訓幹員。
-- `/mastery` 頁面：共用「職業／技能編號」選擇，切換「自動建議排程」（Tab A）／「手動模擬排程」（Tab B）兩個分頁，皆會即時從 API 取得篩選後的候選幹員清單。
+- `/mastery` 頁面：共用「職業／起始階段」選擇，切換「自動建議排程」（Tab A）／「手動模擬排程」（Tab B）兩個分頁。
+- 支援幹員資料層／`GET /api/support-operators`：已改為即時讀取 Google Sheets（見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），取代先前的 mock 資料；依 `class`／`fromSkill`（起始階段）回傳「起始階段→專精三」分組候選資料，Tab A 取各組最高效率候選，Tab B 依下拉選到的階段取整組已排序清單。
+
+> ⚠️ **已知不相容（下一步須先處理）**：上述兩者是分別在兩條分支上開發、於本次 rebase 合併的，目前資料形狀對不上——`/mastery` 頁面（`useSupportOperators.ts`、`ManualPlanTab.vue`）仍假設舊版 `SupportOperator` 形狀且依賴 API 的 `class`/`skill` 篩選；但實際 API 已改為不篩選、回傳新版 `SupportOperatorRecord[]`（欄位、命名皆不同）。續接此次 rebase 前需先決定前端要如何調整，詳見 [ARCHITECTURE.md 已知待處理事項](./ARCHITECTURE.md#現況說明)。
 
 刻意**尚未實作**（下一階段工作）：
 - domain 文件第 3–6 節的實際工作量計算引擎（`RequiredWorkBase`、跨階段減半、`phase.work` 累加、完成條件）。
 - Tab A／Tab B 畫面上的「建議時間」「模擬排程結果」目前固定顯示「待計算」佔位文字，尚未帶入真實算式。
 - 「跳階模擬」（例如從專精二開始）時，上一階段是否已陪滿 5hr 觸發減半，目前規劃由使用者手動輸入，尚未實作。
+- `category`（`critical`/`specific`/`general`/`skill`）四類各自何時套用 `baseEfficiency` 與 `conditionEfficiency` 的完整商業邏輯尚未定案（見下方「尚未收斂的部分」）；`GET /api/support-operators` 已先實作簡化版本，一律回傳 `realEfficiency = baseEfficiency + conditionEfficiency`，`critical` 類別（Logos／艾麗妮）「陪滿 5hr 才生效」的條件尚未套用，暫時視為恆生效。
 
 ### 功能目的
 
@@ -69,13 +71,13 @@ CompletedWork(N) = Σ phase.work
 
 ### 輸入資料
 
-- 陪同幹員的效率加成（`phase.efficiencyBonus`）：**已有資料來源**，見上方「目前實作範圍」與 [domain 文件第 8 節](./domain/arknights_tools_init.md)。目前是 mock 資料，之後若要換成真的 Google Sheets API 或資料庫，只需替換 `server/api/support-operators.get.ts` 內部的資料來源。
+- 陪同幹員的效率加成（`phase.efficiencyBonus`）：原始資料已可從 `GET /api/support-operators` 取得（即時讀取 Google Sheet「方舟專精計時器」，見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），型別為 `SupportOperatorRecord`（`shared/types/support-operator.ts`）。**目前阻塞依賴**：(1) `category`（`critical`/`specific`/`general`/`skill`）四類各自何時套用 `baseEfficiency` 與 `conditionEfficiency` 的商業邏輯尚未定案，需先確定這套規則才能算出實際的 `phase.efficiencyBonus`；(2) `/mastery` 頁面目前仍是對照舊版 `SupportOperator` 形狀撰寫，需同步更新才能改接這份新資料（見上方「已知不相容」）。
 - 每個專精階段的 phase 清單（陪同幹員、陪同時長）：Tab B 目前只做到「選階段＋加入陪同幹員」，陪同時長輸入與 phase 排序尚未實作（屬於下一階段計算引擎的一部分）。
 
 ### 尚未收斂的部分（需求層面）
 
 以下摘自領域文件第 9 節，實作前應先確認，避免規則理解錯誤導致重工：
-- ~~資料表結構待設計~~ 已解決，見上方「目前實作範圍」；「跳階模擬」時上一階段是否已陪滿 5hr 的判定方式仍待實作。
+- 陪同幹員的效率加成依幹員、依職業有不同數值（例如 Logos／艾麗妮平常 0%、對到專精職業 30%；烏爾比安不分職業 50%）。資料表結構已定案（`SupportOperatorRecord`），`category` 四類完整的 `baseEfficiency`／`conditionEfficiency` 判定邏輯仍待設計；目前 API 先以「一律相加」簡化，`critical` 的 5hr 條件、`specific`（例如烏爾比安備註的宿舍搭配條件）尚未實作判定。「跳階模擬」時上一階段是否已陪滿 5hr 的判定方式也仍待實作。
 - 陪同時間不連續（分好幾段陪同）時，「累積滿 5 小時」的判定是否有例外，尚未和實際遊戲行為交叉驗證。
 
 ### 錯誤情境（規劃）

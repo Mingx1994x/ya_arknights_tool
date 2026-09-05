@@ -12,8 +12,8 @@ Nuxt 4 依「目錄位置」自動決定行為，命名規則沿用 Nuxt 官方�
 | 版面 | `app/layouts/` | kebab-case 檔名，`default.vue` 為預設版面 | `app/layouts/default.vue` |
 | Route Middleware | `app/middleware/` | kebab-case 檔名 | `app/middleware/auth.ts` |
 | Server API | `server/api/` | kebab-case 檔名，`.get.ts` / `.post.ts` 等後綴對應 HTTP method | `server/api/mastery.get.ts` → `GET /api/mastery` |
-| Server 工具函式／資料 | `server/utils/` | camelCase 或 kebab-case 檔名 | `server/utils/support-operators.data.ts`（Nitro 自動匯入，僅 server 端可用） |
-| 共用型別（client + server） | `shared/types/` | kebab-case 檔名，型別本身用 PascalCase | `shared/types/support-operator.ts` → `SupportOperator`（Nuxt 4 `shared/` 目錄，`app/` 與 `server/` 皆可 auto-import，對應 `tsconfig.shared.json`） |
+| Server 工具函式／資料 | `server/utils/` | camelCase 或 kebab-case 檔名，server-only，Nitro 自動匯入，不需手動 `import` | `server/utils/support-operators.data.ts` |
+| 共用型別（client + server） | `shared/types/` | kebab-case 檔名，型別本身用 PascalCase，透過 `#shared/...` 路徑或 auto-import 使用 | `shared/types/support-operator.ts` → `SupportOperatorRecord` |
 | 型別定義（僅前端使用） | 建議集中於 `app/types/` 或與功能同目錄的 `*.types.ts` | camelCase 或 kebab-case 檔名，型別本身用 PascalCase | `MasteryPhase` |
 
 > 上述目錄多數尚未在專案中建立；第一次新增某類型檔案時，直接依此表建立對應目錄即可，Nuxt 會自動掃描並套用慣例，不需額外註冊。
@@ -78,9 +78,10 @@ CI 與 CD 由不同工具負責，兩者不衝突：
 
 | 變數 | 用途 | 必要性 | 預設值 |
 | --- | --- | --- | --- |
-| _(尚無環境變數)_ | | | |
+| `NUXT_GOOGLE_SHEETS_CLIENT_EMAIL` | Google Sheets API 服務帳戶 email，用於 JWT 簽發（見 [ARCHITECTURE.md 第三方整合](./ARCHITECTURE.md#第三方整合)） | 必要（缺少時 `GET /api/support-operators` 回傳 `500`） | 無 |
+| `NUXT_GOOGLE_SHEETS_PRIVATE_KEY` | 服務帳戶私鑰（PEM，`\n` 需跳脫成 `\\n` 儲存），用於 JWT 簽發 | 必要 | 無 |
 
-目前專案未使用任何環境變數，`.gitignore` 已預先排除 `.env`、`.env.*`（`.env.example` 除外）供未來使用。新增環境變數時：
+`.gitignore` 已預先排除 `.env`、`.env.*`（`.env.example` 除外）；實際金鑰只存在本機/部署平台的環境變數，絕不提交進版控。新增環境變數時：
 
 1. 於 `nuxt.config.ts` 的 `runtimeConfig` 註冊（區分 server-only 與 `public` 兩類）。
 2. 建立/更新 `.env.example`，列出變數名稱與範例值（不可包含真實密鑰）。
