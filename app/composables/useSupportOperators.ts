@@ -1,12 +1,12 @@
 import type {
   ArknightsClass,
-  SupportOperator,
+  SupportOperatorPhaseGroup,
   SkillPhase,
 } from '#shared/types/support-operator';
 
 /**
- * 依職業／技能編號向 GET /api/support-operators 取得候選輔訓幹員清單，
- * class/skill 變動時會自動重新查詢。
+ * 依職業／起始技能階段向 GET /api/support-operators 取得「起始階段→專精三」
+ * 分組後的候選輔訓幹員清單，class/skill 變動時會自動重新查詢。
  */
 export function useSupportOperators(
   selectedProfession: Ref<ArknightsClass | undefined>,
@@ -15,9 +15,9 @@ export function useSupportOperators(
   return useFetch('/api/support-operators', {
     query: computed(() => ({
       class: selectedProfession.value,
-      skill: selectedSkillPhase.value,
+      fromSkill: selectedSkillPhase.value,
     })),
     default: () => [],
-    transform: (response: { data: SupportOperator[] }) => response.data,
+    transform: (response: { data: SupportOperatorPhaseGroup[] }) => response.data,
   });
 }

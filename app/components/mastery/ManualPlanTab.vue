@@ -9,9 +9,12 @@ const stage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })
 
 const professionRef = toRef(props, 'selectedProfession')
 
-const { data: candidates, pending, error } = useSupportOperators(professionRef, stage)
+const { data: groups, pending, error } = useSupportOperators(professionRef, stage)
 
 const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二', 3: '專精三' }
+
+/** groups[0] 必為目前下拉選到的階段（API 以 stage.value 當 fromSkill，回傳陣列第一筆即該階段）。 */
+const currentStageCandidates = computed(() => groups.value[0]?.candidates ?? [])
 
 /** 每個階段各自累積已加入的幹員清單（依加入順序排列，代表多個 phase）。 */
 const selectedByStage = reactive<Record<SkillPhase, SupportOperator[]>>({
@@ -34,7 +37,7 @@ function removeOperator(index: number) {
 <template>
   <div class="flex flex-col gap-4">
     <label class="flex flex-col gap-1 text-sm max-w-40">
-      <span class="font-semibold">專精階段</span>
+      <span class="font-semibold">起始階段</span>
       <select
         v-model.number="stage"
         class="px-2.5 py-1.5 border border-gray-300 rounded"
@@ -61,12 +64,12 @@ function removeOperator(index: number) {
           <h3 class="text-lg font-semibold mb-2">
             候選幹員（{{ STAGE_LABELS[stage] }}）
           </h3>
-          <p v-if="!candidates.length" class="text-gray-500">
+          <p v-if="!currentStageCandidates.length" class="text-gray-500">
             目前沒有符合條件的候選幹員。
           </p>
           <ul v-else class="flex flex-col gap-2 m-0 p-0 list-none">
             <li
-              v-for="operator in candidates"
+              v-for="operator in currentStageCandidates"
               :key="operator.id"
               class="flex items-center justify-between gap-2"
             >

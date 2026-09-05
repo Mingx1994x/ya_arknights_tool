@@ -9,18 +9,9 @@ const startStage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })
 
 const professionRef = toRef(props, 'selectedProfession')
 
-const { data: candidates, pending, error } = useSupportOperators(professionRef, startStage)
+const { data: groups, pending, error } = useSupportOperators(professionRef, startStage)
 
 const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二', 3: '專精三' }
-
-const visibleStages = computed<SkillPhase[]>(() =>
-  ([1, 2, 3] as const).filter((stage) => stage >= startStage.value),
-)
-
-const bestCandidate = computed(() => {
-  if (!candidates.value.length) return null
-  return [...candidates.value].sort((a, b) => b.realEfficiency - a.realEfficiency)[0]
-})
 </script>
 
 <template>
@@ -50,14 +41,14 @@ const bestCandidate = computed(() => {
         class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]"
       >
         <section
-          v-for="stage in visibleStages"
-          :key="stage"
+          v-for="group in groups"
+          :key="group.phase"
           class="p-4 border border-gray-200 rounded-lg"
         >
-          <h3 class="text-lg font-semibold mb-2">{{ STAGE_LABELS[stage] }}</h3>
-          <p v-if="bestCandidate">
-            建議候選幹員：{{ bestCandidate.codeName
-            }}（+{{ bestCandidate.realEfficiency }}%）
+          <h3 class="text-lg font-semibold mb-2">{{ STAGE_LABELS[group.phase] }}</h3>
+          <p v-if="group.candidates[0]">
+            建議候選幹員：{{ group.candidates[0].codeName
+            }}（+{{ group.candidates[0].realEfficiency }}%）
           </p>
           <p v-else class="text-gray-500">目前沒有符合條件的候選幹員。</p>
           <p class="text-gray-400 italic">建議時間：待計算</p>

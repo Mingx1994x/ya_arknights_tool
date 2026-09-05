@@ -57,3 +57,12 @@ export type SupportOperatorRecord = {
 export type SupportOperator = SupportOperatorRecord & {
   realEfficiency: number;
 };
+
+/**
+ * GET /api/support-operators 依「起始階段→專精三」分組後的候選幹員資料，
+ * candidates 已依 realEfficiency 由高到低排序。
+ */
+export type SupportOperatorPhaseGroup = {
+  phase: SkillPhase;
+  candidates: SupportOperator[];
+};

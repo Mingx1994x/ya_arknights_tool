@@ -18,8 +18,8 @@
 ### 目前實作範圍
 
 已完成：
-- `/mastery` 頁面：共用「職業／技能編號」選擇，切換「自動建議排程」（Tab A）／「手動模擬排程」（Tab B）兩個分頁。
-- 支援幹員資料層／`GET /api/support-operators`：已改為即時讀取 Google Sheets（見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），取代先前的 mock 資料。
+- `/mastery` 頁面：共用「職業／起始階段」選擇，切換「自動建議排程」（Tab A）／「手動模擬排程」（Tab B）兩個分頁。
+- 支援幹員資料層／`GET /api/support-operators`：已改為即時讀取 Google Sheets（見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），取代先前的 mock 資料；依 `class`／`fromSkill`（起始階段）回傳「起始階段→專精三」分組候選資料，Tab A 取各組最高效率候選，Tab B 依下拉選到的階段取整組已排序清單。
 
 > ⚠️ **已知不相容（下一步須先處理）**：上述兩者是分別在兩條分支上開發、於本次 rebase 合併的，目前資料形狀對不上——`/mastery` 頁面（`useSupportOperators.ts`、`ManualPlanTab.vue`）仍假設舊版 `SupportOperator` 形狀且依賴 API 的 `class`/`skill` 篩選；但實際 API 已改為不篩選、回傳新版 `SupportOperatorRecord[]`（欄位、命名皆不同）。續接此次 rebase 前需先決定前端要如何調整，詳見 [ARCHITECTURE.md 已知待處理事項](./ARCHITECTURE.md#現況說明)。
 
