@@ -12,6 +12,25 @@ const professionRef = toRef(props, 'selectedProfession')
 const { data: groups, pending, error } = useSupportOperators(professionRef, startStage)
 
 const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二', 3: '專精三' }
+
+/**
+ * 依序反推各階段建議陪同時長（見 app/utils/mastery.ts）。
+ * 若 startStage > 1（跳階模擬），上一階段是否已觸發減半目前無法得知，保守視為未觸發，見
+ * docs/domain/arknights_tools_init.md 第 9 節「尚未收斂的部分」。
+ */
+const suggestions = computed(() => {
+  const phases = groups.value.map((group) => group.phase)
+  const candidatesByPhase = new Map(groups.value.map((group) => [group.phase, group.candidates[0]]))
+
+  return suggestStagePlans(phases, false, (phase) => {
+    const candidate = candidatesByPhase.get(phase)
+    return candidate
+      ? { efficiencyBonusPercent: candidate.realEfficiency, isCritical: candidate.category === 'critical' }
+      : undefined
+  })
+})
+
+const suggestionByPhase = computed(() => new Map(suggestions.value.map((s) => [s.phase, s])))
 </script>
 
 <template>
@@ -51,7 +70,18 @@ const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二
             }}（+{{ group.candidates[0].realEfficiency }}%）
           </p>
           <p v-else class="text-gray-500">目前沒有符合條件的候選幹員。</p>
-          <p class="text-gray-400 italic">建議時間：待計算</p>
+          <template v-if="suggestionByPhase.get(group.phase)?.suggestedDurationHours != null">
+            <p class="text-gray-500 text-sm">
+              所需工作量：{{ formatHoursAsHm(suggestionByPhase.get(group.phase)!.requiredWork) }}
+              <span v-if="suggestionByPhase.get(group.phase)!.requiredWork < suggestionByPhase.get(group.phase)!.requiredWorkBase">（已套用跨階段減半）</span>
+            </p>
+            <p class="font-medium">
+              建議陪同時間：{{ formatHoursAsHm(suggestionByPhase.get(group.phase)!.suggestedDurationHours!) }}
+            </p>
+            <p v-if="suggestionByPhase.get(group.phase)!.triggersNextHalving" class="text-green-600 text-sm">
+              陪滿 5 小時，下一階段所需工作量將減半
+            </p>
+          </template>
         </section>
       </div>
     </template>

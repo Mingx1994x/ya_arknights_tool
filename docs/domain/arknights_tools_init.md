@@ -122,13 +122,14 @@ const masteryLevels = {
 // 資料現況見下方說明。
 ```
 
-**陪同幹員效率加成資料現況**：20 筆輔訓幹員資料（謄寫自 Google Sheet「方舟專精計時器」`附件:訓練幹員` 分頁）已落地於 `server/utils/support-operators.data.ts`，型別定義在 `shared/types/support-operator.ts`，透過 `GET /api/support-operators`（支援 `class`／`skill` query 篩選）提供給前端。這份資料本身刻意不寫進本文件（維持「角色能力資料」與「業務規則公式」分離的立場，見下方第 9 節），本文件只記錄公式規則；實際數值請以程式碼中的資料為準。
+**陪同幹員效率加成資料現況**：20 筆輔訓幹員資料（謄寫自 Google Sheet「方舟專精計時器」`附件:訓練幹員` 分頁）已落地於 `server/utils/support-operators.data.ts`，型別定義在 `shared/types/support-operator.ts`，透過 `GET /api/support-operators`（支援 `class`／`fromSkill` query 篩選）提供給前端。這份資料本身刻意不寫進本文件（維持「角色能力資料」與「業務規則公式」分離的立場，見下方第 9 節），本文件只記錄公式規則；實際數值請以程式碼中的資料為準。
 
-**尚未實作**：本節公式（`RequiredWorkBase`／跨階段減半／`phase.work` 累加／完成條件）與上述幹員資料的串接運算，即依使用者選擇算出實際「建議時間」，目前尚未實作（見 [FEATURES.md](../FEATURES.md) 的階段範圍說明）。
+**已實作**：本節公式（`RequiredWorkBase`／跨階段減半／`phase.work` 累加／完成條件）已落地於 `app/utils/mastery.ts`（純函式，數值已對照第 7 節範例驗算），並已串接進 `/mastery` 頁面：「手動模擬排程」（`ManualPlanTab.vue`）依使用者輸入的陪同時長即時算出各階段 `CompletedWork`／是否達成／是否觸發下一階段減半；「自動建議排程」（`AutoPlanTab.vue`）依各階段目前最高效率候選反推建議陪同時長。見 [FEATURES.md](../FEATURES.md) 的實作範圍說明。
 
 ---
 
 ## 9. 尚未收斂的部分
 
-- ~~陪同幹員各自的效率加成資料來源未定~~ **已解決**：資料表結構與來源見上方第 8 節。仍待確認的是「跳階模擬」情境——例如使用者選擇從專精二開始模擬時，專精一是否曾陪同 Logos／艾麗妮滿 5hr（決定專精二是否套用減半）目前規劃由使用者手動輸入/勾選，尚未實作。
-- `usedLogosOrElysium5hr(N)` 目前定義是「該階段陪同時間累積滿 5 小時」；如果陪同時間不連續（分好幾段陪同），累積算法是否有例外，尚未和實際遊戲行為交叉驗證，未來如果發現有出入需要再更新本文件。
+- ~~陪同幹員各自的效率加成資料來源未定~~ **已解決**：資料表結構與來源見上方第 8 節。
+- **跳階模擬**：`ManualPlanTab.vue` 固定計算專精一～三（`app/utils/mastery.ts` 的 `evaluateStages`），起始一律假設「專精一之前」未觸發減半。若使用者想略過在本工具內建立專精一（或一、二）的陪同紀錄、直接從後面階段開始模擬，目前無法手動指定「上一階段是否已陪滿 5hr」，會被視為未觸發減半（保守估計）。`AutoPlanTab.vue` 的 `suggestStagePlans` 在 `fromPhase > 1` 時也是相同假設。這牽涉到額外的 UX 設計決策（獨立勾選框該放在哪一層、是否要跟現有「起始階段」下拉共用同一個變數的語意衝突），留待下一個計畫處理。
+- `usedLogosOrElysium5hr(N)` 目前定義是「該階段陪同時間累積滿 5 小時」；如果陪同時間不連續（分好幾段陪同），累積算法是否有例外，尚未和實際遊戲行為交叉驗證，未來如果發現有出入需要再更新本文件。程式碼中對應的判斷邏輯是把該階段所有 `category === 'critical'` 的陪同時長加總（`calcCriticalHours`），跟 `HALVING_THRESHOLD_HOURS`（5 小時）比較，與此定義一致。
