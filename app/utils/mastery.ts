@@ -13,10 +13,11 @@ export const CRITICAL_DEFAULT_DURATION_HOURS = HALVING_THRESHOLD_HOURS + 5 / 60
 const TBASE_HOURS: Record<SkillPhase, number> = { 1: 8, 2: 16, 3: 24 }
 
 /**
- * 領域文件第 3 節：RequiredWorkBase(N) = Tbase(N) / 1.05
+ * 領域文件第 3 節：RequiredWorkBase(N) = Tbase(N)（不套用任何加成，
+ * 5% 基地加成已併入 `calcPhaseWork`／`calcDurationForWork` 的加成係數，見第 5 節）
  */
 export function getRequiredWorkBase(phase: SkillPhase): number {
-  return TBASE_HOURS[phase] / (1 + BUILD_SPEED_BONUS)
+  return TBASE_HOURS[phase]
 }
 
 /**
@@ -31,6 +32,8 @@ export function getRequiredWork(phase: SkillPhase, previousPhaseTriggeredHalving
 
 /**
  * 領域文件第 5 節：單一 phase 依當下效率加成換算後的工作量。
+ * 5% 基地加成（`BUILD_SPEED_BONUS`）跟陪同幹員的效率加成是相加關係，
+ * 不是分開的兩層乘法（2026-09-06 修正，見領域文件第 3、5、7 節）。
  *
  * @param durationHours - 該 phase 實際經過的時間（小時，小數）
  * @param efficiencyPercent - 陪同幹員在這次陪同中的效率（百分比，例如 30 代表 +30%）；
@@ -38,14 +41,14 @@ export function getRequiredWork(phase: SkillPhase, previousPhaseTriggeredHalving
  *   陪滿 5hr 一樣觸發下一階段減半，因此命名不用「Bonus」暗示恆為正值
  */
 export function calcPhaseWork(durationHours: number, efficiencyPercent: number): number {
-  return durationHours * (1 + efficiencyPercent / 100)
+  return durationHours * (1 + BUILD_SPEED_BONUS + efficiencyPercent / 100)
 }
 
 /**
  * `calcPhaseWork` 的反函式：要產生 `targetWork` 的工作量，某效率加成的幹員需要陪同多久。
  */
 export function calcDurationForWork(targetWork: number, efficiencyPercent: number): number {
-  return targetWork / (1 + efficiencyPercent / 100)
+  return targetWork / (1 + BUILD_SPEED_BONUS + efficiencyPercent / 100)
 }
 
 /**

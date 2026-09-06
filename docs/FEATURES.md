@@ -40,14 +40,14 @@
 **基礎工作量（詳見領域文件第 3 節）**
 
 ```
-RequiredWorkBase(N) = Tbase(N) / 1.05   // 基建 5% 專精速度加成
+RequiredWorkBase(N) = Tbase(N)   // 不套用任何加成，5% 基地加成併入下方 phase.work 的加成係數
 ```
 
-| 專精階段 | Tbase(N) | RequiredWorkBase(N) |
-| --- | ---: | ---: |
-| 專精一 | 8 hr | ≈ 7.619 hr |
-| 專精二 | 16 hr | ≈ 15.238 hr |
-| 專精三 | 24 hr | ≈ 22.857 hr |
+| 專精階段 | Tbase(N)（即 RequiredWorkBase(N)） |
+| --- | ---: |
+| 專精一 | 8 hr |
+| 專精二 | 16 hr |
+| 專精三 | 24 hr |
 
 **跨階段減半規則（核心規則，詳見領域文件第 4 節）**
 
@@ -55,10 +55,10 @@ RequiredWorkBase(N) = Tbase(N) / 1.05   // 基建 5% 專精速度加成
 
 **階段內工作量累加（詳見領域文件第 5 節）**
 
-一個階段可由多個「陪同幹員不變」的時間區間（phase）組成，每個 phase 依當下效率加成換算工作量後加總：
+一個階段可由多個「陪同幹員不變」的時間區間（phase）組成，每個 phase 依當下效率加成**加上** 5% 基地加成換算工作量後加總（2026-09-06 修正：5% 改成跟陪同幹員效率加成相加，不再是分開套用在 `RequiredWorkBase` 的獨立乘法，詳見領域文件第 3、7 節的真實截圖驗算數字）：
 
 ```
-phase.work = phase.duration × (1 + phase.efficiencyBonus / 100)
+phase.work = phase.duration × (1 + 0.05 + phase.efficiencyBonus / 100)
 CompletedWork(N) = Σ phase.work
 ```
 
