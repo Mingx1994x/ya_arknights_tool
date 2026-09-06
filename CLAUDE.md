@@ -27,6 +27,7 @@ ya-arknights-tools — 明日方舟（Arknights）玩家輔助工具站，使用
 - 功能開發前先在 `docs/plans/draft/` 記錄計畫；完成後移至 `docs/plans/archive/`（此兩個目錄僅本機保存，不進版控，見 `.gitignore`）。
 - 目前沒有後端 API（無 `server/` 目錄）、沒有資料庫、沒有身份驗證機制；新增這些機制前，先在 `docs/ARCHITECTURE.md` 補上對應章節。
 - `.claude/` 目錄（Claude Code 本機設定與 skills）不進版控，僅供本機使用。
+- 與使用者的所有文字溝通（終端機摘要、說明、提問、對話回覆）一律使用繁體中文，維持與本專案文件／commit message／code comment 一致的語言慣例。
 
 ## 詳細文件
 

@@ -41,9 +41,10 @@ import { describe, expect, it } from 'vitest'
 import { calcPhaseWork } from './mastery'
 
 describe('calcPhaseWork', () => {
-  it('依效率加成換算 phase 工作量', () => {
-    // 對照 docs/domain/arknights_tools_init.md 第 7 節，專精一範例
-    expect(calcPhaseWork(95.08 / 60, 60)).toBeCloseTo(152.14 / 60, 2)
+  it('依效率加成（含 5% 基地加成）換算 phase 工作量', () => {
+    // 對照 docs/domain/arknights_tools_init.md 第 7 節，專精一水陳（95% 加成）33 分 9 秒範例
+    // rate = 1 + 0.05 + 0.95 = 2.00
+    expect(calcPhaseWork(33.15 / 60, 95)).toBeCloseTo(66.3 / 60, 2)
   })
 })
 ```
@@ -53,7 +54,7 @@ describe('calcPhaseWork', () => {
 ## 常見陷阱
 
 - **時間單位混用**：領域文件明確要求「內部計算一律使用小時的小數，只在顯示時才轉換成 hr/min」（見領域文件第 2 節備註）。撰寫測試時要注意範例驗算表格是用「分鐘」記錄，換算成小時時需自行除以 60，否則會誤判測試失敗。
-- **浮點數誤差**：工作量計算涉及除以 1.05、除以 2 等運算，斷言時應使用 `toBeCloseTo` 而非 `toBe`，容許範例驗算表格中提到的「四捨五入誤差」。
+- **浮點數誤差**：工作量計算涉及除以 2（跨階段減半）等運算，斷言時應使用 `toBeCloseTo` 而非 `toBe`，容許範例驗算表格中提到的「四捨五入誤差」。
 - **減半規則的階段錯位**：`usedLogosOrElysium5hr(N)` 影響的是「下一階段」N+1，測試案例命名與斷言對象容易搞混當前階段與下一階段，撰寫測試時建議直接以領域文件的變數命名（`RequiredWorkBase`/`RequiredWork`）對應測試變數名稱，避免混淆。
 
 ## 測試檔案表 / 執行順序與依賴關係

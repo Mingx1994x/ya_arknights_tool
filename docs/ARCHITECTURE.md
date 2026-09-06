@@ -2,9 +2,7 @@
 
 ## 現況說明
 
-本專案原為 Nuxt 4 官方最小起始模板；「幹員專精試算」功能開始實作後，已新增 `app/pages/`、`app/components/`、`app/composables/` 等前端目錄，以及 `server/`、`shared/` 目錄——後端已串接 Google Sheets API v4 讀取真實支援幹員資料（取代先前的 mock 資料）。本文件記錄**現有結構**，尚未建立的部分（資料庫、認證等）仍標註「尚未建立」，待實際新增時必須回來更新本文件（見 [DEVELOPMENT.md](./DEVELOPMENT.md) 的關鍵規則）。
-
-> ⚠️ **已知待處理事項**：前端 `/mastery` 頁面（`app/composables/useSupportOperators.ts`、`app/components/mastery/ManualPlanTab.vue`）與後端 `server/api/support-operators.get.ts` 是在兩條不同分支上分別開發、於本次 rebase 合併的，**資料形狀目前不一致**——前端仍假設舊版 `SupportOperator` 型別並依賴 API 的 `class`/`skill` query 篩選，但後端已改為不篩選、直接回傳新版 `SupportOperatorRecord[]`（欄位與命名皆不同）。詳見下方「各檔案用途」表中 `shared/types/support-operator.ts` 一列與「API 路由總覽表」的說明。**續接此次 rebase（`git rebase --continue`）前需先決定如何調整前端**，否則 `/mastery` 頁面會壞掉。
+本專案原為 Nuxt 4 官方最小起始模板；「幹員專精試算」功能開始實作後，已新增 `app/pages/`、`app/components/`、`app/composables/`、`app/utils/` 等前端目錄，以及 `server/`、`shared/` 目錄——後端已串接 Google Sheets API v4 讀取真實支援幹員資料（取代先前的 mock 資料），前端也已完成專精工作量計算引擎並串接進兩個分頁。本文件記錄**現有結構**，尚未建立的部分（資料庫、認證等）仍標註「尚未建立」，待實際新增時必須回來更新本文件（見 [DEVELOPMENT.md](./DEVELOPMENT.md) 的關鍵規則）。
 
 ## 目錄結構
 
@@ -20,15 +18,19 @@ ya-arknights-tools/
 │   │   ├── ClassSkillSelect.vue      # <MasteryClassSkillSelect> 職業/技能編號選擇
 │   │   ├── AutoPlanTab.vue           # <MasteryAutoPlanTab> Tab A 自動建議排程
 │   │   └── ManualPlanTab.vue         # <MasteryManualPlanTab> Tab B 手動模擬排程
-│   └── composables/
-│       └── useSupportOperators.ts    # 包裝 /api/support-operators 的 useFetch（⚠️ 資料形狀待與後端同步，見上方已知待處理事項）
+│   ├── composables/
+│   │   └── useSupportOperators.ts    # 包裝 /api/support-operators 的 useFetch
+│   ├── types/
+│   │   └── mastery.ts                # 僅前端使用的型別：CriticalCompanionPlan／MasteryTopCandidate／MasteryStageCandidates／MasteryStageAutoPlan
+│   └── utils/
+│       └── mastery.ts                # 專精工作量計算純函式（RequiredWorkBase／跨階段減半／critical 幹員陪練組合反推建議陪同時長），見 docs/domain/arknights_tools_init.md
 ├── server/
 │   ├── api/
 │   │   └── support-operators.get.ts  # GET /api/support-operators
 │   └── utils/
 │       ├── google-sheets.ts          # 通用 Google Sheets API v4 讀取 client（server-only，Nitro 自動匯入）
 │       ├── support-operators.data.ts # 支援幹員資料解析與快取（server-only，Nitro 自動匯入）
-│       └── support-operator-candidates.ts # 依職業／起始階段算「起始階段→專精三」分組候選幹員（server-only，Nitro 自動匯入）
+│       └── support-operator-candidates.ts # 依職業／起始階段算「起始階段→專精三」分組候選幹員；critical 類別不受職業篩選限制（server-only，Nitro 自動匯入）
 ├── shared/
 │   └── types/
 │       └── support-operator.ts       # SupportOperatorRecord（現用）與 SupportOperator（舊版，待清理）等型別，client/server 共用
@@ -60,12 +62,14 @@ ya-arknights-tools/
 | --- | --- |
 | `app/app.vue` | Vue root component，render `<NuxtRouteAnnouncer />`（無障礙路由播報）與 `<NuxtPage />`（依 `app/pages/` 路由渲染對應頁面） |
 | `app/pages/mastery/index.vue` | 幹員專精試算頁面殼：共用「幹員職業／技能編號」選擇狀態，切換 Tab A（自動建議）／Tab B（手動模擬） |
-| `app/composables/useSupportOperators.ts` | 包裝 `GET /api/support-operators` 的 `useFetch`；⚠️ 目前仍傳送 `class`/`skill` query 並預期舊版 `SupportOperator[]`，與實際 API 不相容，見上方已知待處理事項 |
+| `app/composables/useSupportOperators.ts` | 包裝 `GET /api/support-operators` 的 `useFetch`，依 `class`／`fromSkill` 查詢並回傳 `SupportOperatorPhaseGroup[]` |
+| `app/types/mastery.ts` | 僅前端使用的型別（見 [DEVELOPMENT.md 命名規則對照表](./DEVELOPMENT.md#命名規則對照表)「型別定義（僅前端使用）」一列）：`CriticalCompanionPlan`／`MasteryTopCandidate`／`MasteryStageCandidates`／`MasteryStageAutoPlan`，供 `app/utils/mastery.ts` 與 `AutoPlanTab.vue` 匯入 |
+| `app/utils/mastery.ts` | 專精工作量計算純函式：`getRequiredWorkBase`／`getRequiredWork`（跨階段減半）／`getRequiredWorkUnderDefaultStrategy`（僅 Tab B 使用，寫死「專精一未減半、二／三一定減半」，見下方已知限制）／`calcPhaseWork`／`calcDurationForWork`（反函式）／`planCriticalCompanionStage`（critical 幹員＋另一位陪練幹員的組合反推）／`suggestStagePlans`（Tab A 用：把 `phases[0]`〔使用者選擇的起始階段〕視為未減半，之後階段依序觸發減半，內部呼叫 `planCriticalCompanionStage`）／`formatHoursAsHm`，對應 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 2–6 節 |
 | `server/api/support-operators.get.ts` | 依 `class`／`fromSkill`（起始階段，缺省為 1）回傳 `{ data: SupportOperatorPhaseGroup[] }`（見下方 API 路由總覽表），內部呼叫 `support-operator-candidates.ts` 計算 |
 | `server/utils/google-sheets.ts` | 用 Service Account（`google-auth-library` 的 `JWT`）驗證後，呼叫 Sheets API v4 `values.get` 讀取指定分頁範圍，回傳原始字串二維陣列 |
 | `server/utils/support-operators.data.ts` | 把 `google-sheets.ts` 讀到的原始列資料解析/驗證成 `SupportOperatorRecord[]`，並用 Nitro `defineCachedFunction` 快取 5 分鐘 |
-| `server/utils/support-operator-candidates.ts` | `resolveCandidatesByPhase()`：依職業／起始階段，把 `SupportOperatorRecord[]` 篩選、算 `realEfficiency`、依階段分組並排序，回傳 `SupportOperatorPhaseGroup[]` |
-| `shared/types/support-operator.ts` | `SupportOperatorRecord`／`ArknightsClass`／`SupportOperatorCategory`（`critical`/`specific`/`general`/`skill`）為目前實際使用的型別，`app/` 與 `server/` 皆可透過 `#shared/...` 路徑 auto-import（對應 `tsconfig.shared.json`）；`SupportOperator`（舊版 mock 形狀）仍保留但已無資料實作，僅前端兩處引用，屬待清理項目 |
+| `server/utils/support-operator-candidates.ts` | `resolveCriticalCandidates()`：篩出 `category === 'critical'` 幹員，不受職業篩選限制，`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入 `realEfficiency`；`resolveCandidatesByPhase()`：其餘三類依職業／`targetPhase` 篩選、算 `realEfficiency`，跟 `resolveCriticalCandidates()` 的結果合併、依階段分組並排序，回傳 `SupportOperatorPhaseGroup[]` |
+| `shared/types/support-operator.ts` | `SupportOperatorRecord`／`ArknightsClass`／`SupportOperatorCategory`（`critical`/`specific`/`general`/`skill`）／`SupportOperator`（`SupportOperatorRecord` 附加 `realEfficiency`）／`SupportOperatorPhaseGroup` 為目前實際使用的型別，`app/` 與 `server/` 皆可透過 `#shared/...` 路徑 auto-import（對應 `tsconfig.shared.json`）；檔案內另有一段註解掉的舊版 `SupportOperator` mock 介面定義，純屬歷史紀錄、未參與編譯 |
 | `nuxt.config.ts` | `compatibilityDate: '2025-07-15'` 鎖定 Nuxt 相容行為版本；`devtools.enabled: true` 開啟 Nuxt DevTools；`runtimeConfig.googleSheets`（server-only）存放 Google Sheets Service Account 憑證 |
 | `tsconfig.json` | 本身不含直接的 `compilerOptions`，而是透過 `references` 指向 `pnpm install`（`postinstall` → `nuxt prepare`）產生於 `.nuxt/` 的四個 project reference tsconfig（`tsconfig.app.json` / `tsconfig.server.json` / `tsconfig.shared.json` / `tsconfig.node.json`）。**這代表首次 clone 專案後必須先執行 `pnpm install` 才會有完整型別檢查**，否則編輯器可能報找不到參照的 tsconfig |
 | `public/robots.txt` | `Disallow:` 留空即允許所有頁面被索引 |
@@ -80,7 +84,7 @@ ya-arknights-tools/
 
 | 前綴 | 檔案 | 認證 | 說明 |
 | --- | --- | --- | --- |
-| `GET /api/support-operators` | `server/api/support-operators.get.ts` | 無（對外）；伺服器端以 Google Service Account 存取 Sheets API | Query：`class`（8 職業之一，可選）、`fromSkill`（1/2/3，可選，代表「起始階段」，缺省為 1）。回傳 `{ data: SupportOperatorPhaseGroup[] }`，依 phase 升冪排列涵蓋 `fromSkill → 專精三`，每組 `candidates` 已依 `realEfficiency` 由高到低排序；`category === 'skill'` 的幹員僅在對應 `targetPhase` 的那組出現，其餘三類每組都會出現。資料來源見下方「第三方整合」 |
+| `GET /api/support-operators` | `server/api/support-operators.get.ts` | 無（對外）；伺服器端以 Google Service Account 存取 Sheets API | Query：`class`（8 職業之一，可選）、`fromSkill`（1/2/3，可選，代表「起始階段」，缺省為 1）。回傳 `{ data: SupportOperatorPhaseGroup[] }`，依 phase 升冪排列涵蓋 `fromSkill → 專精三`，每組 `candidates` 已依 `realEfficiency` 由高到低排序；`category === 'critical'` 不受 `class` 篩選限制、每組都會出現（`conditionEfficiency` 依職業是否命中決定是否計入），`category === 'skill'` 僅在對應 `targetPhase` 的那組出現，`specific`／`general` 每組都會出現但仍受 `class` 篩選。資料來源見下方「第三方整合」 |
 
 新增 server route 時的慣例：Nuxt 會自動將 `server/api/*.ts` 對應為 `/api/*` 端點（[Nuxt Server Directory 文件](https://nuxt.com/docs/guide/directory-structure/server)）。
 
