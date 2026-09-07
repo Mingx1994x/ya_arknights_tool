@@ -29,7 +29,7 @@ pnpm add -D @nuxt/test-utils @vue/test-utils happy-dom
 
 依 [FEATURES.md](./FEATURES.md) 目前唯一規劃中的功能（幹員專精工作量計算）為例，優先順序建議如下：
 
-1. **純函式單元測試（已完成第一批）**：`app/utils/mastery.ts` 的工作量計算公式（`RequiredWorkBase`、跨階段減半、`phase.work` 累加、完成條件判斷）不依賴 Vue 或 DOM，對照 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 7 節的範例驗算數字作為測試案例，見 `tests/unit/mastery.test.ts`。
+1. **純函式單元測試（已完成第一批）**：`app/utils/mastery.ts` 的工作量計算公式（`RequiredWorkBase`、跨階段減半、`phase.work` 換算、`planCriticalCompanionStage` 的 critical＋陪練幹員配對、`suggestStagePlans` 的自動排程反推）不依賴 Vue 或 DOM，對照 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 7 節的範例驗算數字作為測試案例，見 `tests/unit/mastery.test.ts`。
 2. **Composable 測試（尚未開始）**：`app/composables/` 若封裝了響應式狀態，使用 `@vue/test-utils` 或 Vitest 搭配 Vue 的 reactivity API 測試，放在 `tests/composables/`。
 3. **元件測試（尚未開始）**：使用 `@nuxt/test-utils` 提供的 `mountSuspended` 等工具，測試互動與渲染結果，放在 `tests/components/`。
 
@@ -63,4 +63,4 @@ describe('calcPhaseWork', () => {
 
 | 檔案 | 依賴 | 說明 |
 | --- | --- | --- |
-| `tests/unit/mastery.test.ts` | `app/utils/mastery.ts`（無 mock，不需特定執行順序） | 對照 `docs/domain/arknights_tools_init.md` 第 7 節範例驗算，涵蓋 `getRequiredWorkBase`／`getRequiredWork`／`calcPhaseWork`／`calcCompletedWork`／`calcCriticalHours`／`evaluateStages`／`suggestStagePlans`／`formatHoursAsHm` |
+| `tests/unit/mastery.test.ts` | `app/utils/mastery.ts`（無 mock，不需特定執行順序） | 對照 `docs/domain/arknights_tools_init.md` 第 7 節範例驗算，涵蓋 `getRequiredWorkBase`／`getRequiredWork`／`calcPhaseWork`／`calcDurationForWork`／`planCriticalCompanionStage`／`suggestStagePlans`／`formatHoursAsHm` |
