@@ -136,7 +136,7 @@ const masteryLevels = {
 
 **陪同幹員效率加成資料現況**：20 筆輔訓幹員資料（謄寫自 Google Sheet「方舟專精計時器」`附件:訓練幹員` 分頁）已落地於 `server/utils/support-operators.data.ts`，型別定義在 `shared/types/support-operator.ts`，透過 `GET /api/support-operators`（支援 `class`／`fromSkill` query 篩選）提供給前端。這份資料本身刻意不寫進本文件（維持「角色能力資料」與「業務規則公式」分離的立場，見下方第 9 節），本文件只記錄公式規則；實際數值請以程式碼中的資料為準。
 
-**已實作**：本節公式（`RequiredWorkBase`／跨階段減半／`phase.work`）已落地於 `app/utils/mastery.ts`（純函式，數值已對照第 7 節範例驗算），並已串接進 `/mastery` 頁面：「手動模擬排程」（`ManualPlanTab.vue`）採「critical 幹員＋另一位陪練幹員」的預設策略——專精一、二各安排一位 critical 幹員陪滿 ≥5hr 觸發下一階段減半，反推另一位陪練幹員需要陪同多久才能補滿 `RequiredWork(N)`；專精三沒有下一階段可減半，不安排 critical 幹員，直接反推單一陪練幹員的所需時長。「自動建議排程」（`AutoPlanTab.vue`）採相同預設策略，差別是候選幹員不用手動選，改成自動挑各分類（critical／其他）裡效率最高的。見 [FEATURES.md](../FEATURES.md) 的實作範圍說明。
+**已實作**：本節公式（`RequiredWorkBase`／跨階段減半／`phase.work`）已落地於 `app/utils/mastery.ts`（純函式，附 `tests/unit/mastery.test.ts` 單元測試，直接對照第 7 節範例驗算），並已串接進 `/mastery` 頁面：「手動模擬排程」（`ManualPlanTab.vue`）採「critical 幹員＋另一位陪練幹員」的預設策略——專精一、二各安排一位 critical 幹員陪滿 ≥5hr 觸發下一階段減半，反推另一位陪練幹員需要陪同多久才能補滿 `RequiredWork(N)`；專精三沒有下一階段可減半，不安排 critical 幹員，直接反推單一陪練幹員的所需時長。「自動建議排程」（`AutoPlanTab.vue`）採相同預設策略，差別是候選幹員不用手動選，改成自動挑各分類（critical／其他）裡效率最高的。見 [FEATURES.md](../FEATURES.md) 的實作範圍說明。
 
 ---
 

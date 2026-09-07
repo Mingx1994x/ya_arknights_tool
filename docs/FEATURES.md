@@ -20,7 +20,7 @@
 已完成：
 - `/mastery` 頁面：共用「職業／起始階段」選擇，切換「自動建議排程」（Tab A）／「手動模擬排程」（Tab B）兩個分頁。
 - 支援幹員資料層／`GET /api/support-operators`：已改為即時讀取 Google Sheets（見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），取代先前的 mock 資料；依 `class`／`fromSkill`（起始階段）回傳「起始階段→專精三」分組候選資料。`category === 'critical'`（Logos／艾麗妮）不受職業篩選限制、每組都會出現，`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入（`server/utils/support-operator-candidates.ts` 的 `resolveCriticalCandidates`）；其餘三類仍依職業篩選。Tab A／Tab B 各自從同一份分組資料中，分別挑出 critical／非 critical 類別效率最高的候選。
-- domain 文件第 3–6 節的基礎公式（`RequiredWorkBase`、跨階段減半、`phase.work`），純函式實作於 `app/utils/mastery.ts`，數值已對照 domain 文件第 7 節範例驗算無誤。
+- domain 文件第 3–6 節的基礎公式（`RequiredWorkBase`、跨階段減半、`phase.work`），純函式實作於 `app/utils/mastery.ts`，並有對照 domain 文件第 7 節範例驗算的 Vitest 單元測試（`tests/unit/mastery.test.ts`，`pnpm test` 執行）。
 - Tab B（`ManualPlanTab.vue`）採用**逐階段即時計算**流程：選好職業後先排「起始階段」，一次只顯示、編輯一個階段（`currentStage`）；每階段安排一位 critical 幹員（Logos／艾麗妮）陪同（下限 5hr、預設 5hr5min 含操作緩衝，專精三沒有下一階段可減半故不安排 critical 幹員，直接反推單一陪練幹員的所需時長）與一位陪練幹員，補滿所需工作量後可點「前往下一階段」，把目前階段結果鎖定成唯讀摘要卡片並前進。下一階段的 `RequiredWork(N)` 採用「上一階段**實際**鎖定的 `triggersNextHalving`」（依使用者真實填的陪同時長是否 `≥5hr` 判斷），起始階段本身宣告式視為未減半（跟 Tab A 一致）；改動「起始階段」或幹員職業會清空已鎖定階段、整個重新開始。已完成階段目前**尚未支援回頭編輯**（見下方「刻意尚未實作」）。
 - Tab A（`AutoPlanTab.vue`）採用跟 Tab B 概念上相同的策略（critical 幹員＋另一位陪練幹員），差別是候選幹員不用手動選：專精一、二自動挑該階段 `critical` 類別效率最高的當 critical 幹員（固定陪同 `CRITICAL_DEFAULT_DURATION_HOURS`）、非 `critical` 類別效率最高的當另一位陪練幹員；專精三自動挑整體效率最高的候選幹員。`suggestStagePlans` 把使用者選擇的起始階段（`phases[0]`）視為宣告式的假設起點，永遠當作未減半，之後的階段依序視為套用本策略而觸發減半（因為是「建議」而非使用者實際輸入，沒有 Tab B 那種逐階段鎖定機制）。
 
