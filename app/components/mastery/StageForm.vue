@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { SupportOperator, SupportOperatorCategory } from '#shared/types/support-operator'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     title: string
     requiredWorkHours: number
@@ -54,6 +54,17 @@ const companionOperatorId = defineModel<string>('companionOperatorId', { default
 const criticalOperatorId = defineModel<string>('criticalOperatorId', { default: '' })
 const criticalHours = defineModel<number>('criticalHours', { default: 5 })
 const criticalMinutes = defineModel<number>('criticalMinutes', { default: 5 })
+
+/** variant 為 general 時，critical 幹員預設直接套用候選清單第一筆（效率最高），不強迫使用者手動選。 */
+watch(
+  [variant, () => props.criticalCandidates],
+  ([currentVariant, candidates]) => {
+    if (currentVariant === 'general' && !criticalOperatorId.value && candidates.length > 0) {
+      criticalOperatorId.value = candidates[0]!.id
+    }
+  },
+  { immediate: true },
+)
 
 const showCompanion = computed(() => variant.value !== 'critical')
 const showCritical = computed(() => variant.value === 'general' || variant.value === 'critical')
