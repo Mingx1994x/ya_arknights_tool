@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ArknightsClass, SkillPhase } from '#shared/types/support-operator'
+import type { ArknightsClass, SkillPhase, SupportOperatorCategory } from '#shared/types/support-operator'
 import {
   CRITICAL_DEFAULT_DURATION_HOURS,
   HALVING_THRESHOLD_HOURS,
@@ -68,9 +68,24 @@ const otherOperatorPool = computed(() =>
 type LockedStageResult = {
   phase: SkillPhase
   requiredWork: number
+  /** 該階段的 requiredWork 是否已套用跨階段減半，對應 MasteryStageCard 的 isHalved。 */
+  isHalved: boolean
   triggersNextHalving: boolean
   critical?: { codeName: string; efficiencyPercent: number; durationHours: number; work: number }
-  other?: { codeName: string; efficiencyPercent: number; durationHours: number | null }
+  other?: {
+    codeName: string
+    efficiencyPercent: number
+    durationHours: number | null
+    category: SupportOperatorCategory
+    memo?: string
+  }
+}
+
+/** 依鎖定階段實際安排的幹員組合，換算成 MasteryStageCard 的顯示形式。 */
+function getLockedVariant(locked: LockedStageResult): 'general' | 'base' | 'critical' {
+  if (locked.critical && locked.other) return 'general'
+  if (locked.critical) return 'critical'
+  return 'base'
 }
 
 /**
@@ -81,10 +96,12 @@ type LockedStageResult = {
  */
 const lockedStages = reactive<Partial<Record<SkillPhase, LockedStageResult>>>({})
 
+/** 由新到舊排序（phase 3 → 1），讓最近鎖定的階段緊接在目前編輯中的階段下方。 */
 const lockedStageList = computed(() =>
   ([1, 2, 3] as SkillPhase[])
     .map((phase) => lockedStages[phase])
-    .filter((result): result is LockedStageResult => result != null),
+    .filter((result): result is LockedStageResult => result != null)
+    .reverse(),
 )
 
 function resetProgress() {
@@ -219,6 +236,7 @@ function advanceToNextStage() {
   lockedStages[phase] = {
     phase,
     requiredWork: requiredWork.value,
+    isHalved: isCurrentStageHalved.value,
     triggersNextHalving: triggersNextHalving.value,
     critical: buildLockedCriticalInfo(),
     other: otherOperator.value
@@ -226,6 +244,8 @@ function advanceToNextStage() {
           codeName: otherOperator.value.codeName,
           efficiencyPercent: otherOperator.value.realEfficiency,
           durationHours: companionDurationHours.value,
+          category: otherOperator.value.category,
+          memo: otherOperator.value.memo,
         }
       : undefined,
   }
@@ -251,151 +271,10 @@ function advanceToNextStage() {
       請先選擇幹員職業以取得候選幹員清單。
     </p>
     <template v-else>
-      <section
-        v-for="locked in lockedStageList"
-        :key="locked.phase"
-        class="p-4 border border-gray-200 rounded-lg flex flex-col gap-2 max-w-md bg-gray-50"
-      >
-        <h3 class="text-lg font-semibold">{{ STAGE_LABELS[locked.phase] }}（已完成）</h3>
-        <p class="text-sm text-gray-500">
-          所需工作量：{{ formatHoursAsHm(locked.requiredWork) }}
-        </p>
-        <template v-if="locked.critical">
-          <p class="text-sm">
-            Critical 幹員：{{ locked.critical.codeName }}（+{{ locked.critical.efficiencyPercent }}%），
-            陪同 {{ formatHoursAsHm(locked.critical.durationHours) }}
-          </p>
-          <p v-if="locked.triggersNextHalving" class="text-sm text-green-600">
-            陪滿 5 小時，下一階段所需工作量已減半
-          </p>
-        </template>
-        <p v-if="locked.other" class="text-sm">
-          陪練幹員：{{ locked.other.codeName }}（+{{ locked.other.efficiencyPercent }}%），
-          陪同 {{
-            locked.other.durationHours != null ? formatHoursAsHm(locked.other.durationHours) : '不需要'
-          }}
-        </p>
-      </section>
-
       <p v-if="pending" class="text-gray-500">候選幹員查詢中…</p>
       <p v-else-if="error" class="text-red-600">
         候選幹員查詢失敗，請稍後再試。
       </p>
-
-      <!--
-      舊版原始互動表單（重構前，保留供對照），已改用 MasteryStageForm：
-      <section
-        v-else
-        class="p-4 border border-gray-200 rounded-lg flex flex-col gap-4 max-w-md"
-      >
-        <h3 class="text-lg font-semibold">{{ STAGE_LABELS[currentStage] }}</h3>
-        <p class="text-sm text-gray-500">
-          所需工作量：{{ formatHoursAsHm(requiredWork) }}
-        </p>
-
-        <template v-if="needsCriticalCompanion">
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="font-semibold">Critical 幹員（Logos／艾麗妮）</span>
-            <select
-              v-model="currentState.criticalOperatorId"
-              class="px-2.5 py-1.5 border border-gray-300 rounded"
-            >
-              <option value="">請選擇</option>
-              <option v-for="c in criticalCandidates" :key="c.id" :value="c.id">
-                {{ c.codeName }}（+{{ c.realEfficiency }}%）
-              </option>
-            </select>
-          </label>
-
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="font-semibold">陪同時長（下限 5 小時，預設含 5 分鐘操作緩衝）</span>
-            <span class="flex items-center gap-1">
-              <input
-                v-model.number="currentState.criticalHours"
-                type="number"
-                min="0"
-                class="w-16 px-1.5 py-1 border border-gray-300 rounded"
-              >
-              小時
-              <input
-                v-model.number="currentState.criticalMinutes"
-                type="number"
-                min="0"
-                max="59"
-                class="w-16 px-1.5 py-1 border border-gray-300 rounded"
-              >
-              分
-            </span>
-          </label>
-          <p v-if="isCriticalDurationClamped" class="text-sm text-amber-600">
-            已達上限，超過會讓 critical 幹員單獨補滿所需工作量，實際計算已自動改用
-            {{ formatHoursAsHm(effectiveCriticalDurationHours) }}。
-          </p>
-
-          <template v-if="criticalPlan">
-            <p class="text-sm text-gray-500">
-              Critical 幹員這段工作量：{{ formatHoursAsHm(criticalPlan.criticalWork) }}
-            </p>
-            <p v-if="criticalPlan.triggersNextHalving" class="text-sm text-green-600">
-              陪滿 5 小時，下一階段所需工作量將減半
-            </p>
-
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="font-semibold">另一位陪練幹員</span>
-              <select
-                v-model="currentState.otherOperatorId"
-                class="px-2.5 py-1.5 border border-gray-300 rounded"
-              >
-                <option value="">請選擇</option>
-                <option v-for="c in otherCandidates" :key="c.id" :value="c.id">
-                  {{ c.codeName }}（+{{ c.realEfficiency }}%）
-                </option>
-              </select>
-            </label>
-
-            <p v-if="!currentState.otherOperatorId" class="text-gray-500">請選擇另一位陪練幹員以算出建議陪同時間。</p>
-            <p v-else class="font-medium">
-              建議陪同時間：{{
-                criticalPlan.otherOperatorDurationHours != null
-                  ? formatHoursAsHm(criticalPlan.otherOperatorDurationHours)
-                  : '不需要'
-              }}
-            </p>
-          </template>
-          <p v-else class="text-gray-500">請先選擇 Critical 幹員。</p>
-        </template>
-
-        <template v-else>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="font-semibold">陪練幹員</span>
-            <select
-              v-model="currentState.otherOperatorId"
-              class="px-2.5 py-1.5 border border-gray-300 rounded"
-            >
-              <option value="">請選擇</option>
-              <option v-for="c in currentStageCandidates" :key="c.id" :value="c.id">
-                {{ c.codeName }}（+{{ c.realEfficiency }}%）
-              </option>
-            </select>
-          </label>
-
-          <p v-if="soloDurationHours == null" class="text-gray-500">請選擇陪練幹員以算出建議陪同時間。</p>
-          <p v-else class="font-medium">
-            建議陪同時間：{{ formatHoursAsHm(soloDurationHours) }}
-          </p>
-        </template>
-
-        <button
-          v-if="currentStage < 3"
-          type="button"
-          class="self-start px-4 py-2 rounded bg-blue-600 text-white font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
-          :disabled="!canAdvance"
-          @click="advanceToNextStage"
-        >
-          前往下一階段
-        </button>
-      </section>
-      -->
 
       <MasteryStageForm
         v-else
@@ -418,6 +297,24 @@ function advanceToNextStage() {
         :effective-critical-duration-hours="effectiveCriticalDurationHours"
         :can-advance="canAdvance"
         @advance="advanceToNextStage"
+      />
+
+      <MasteryStageCard
+        v-for="locked in lockedStageList"
+        :key="locked.phase"
+        :title="`${STAGE_LABELS[locked.phase]}（已完成）`"
+        :required-work-hours="locked.requiredWork"
+        :is-halved="locked.isHalved"
+        :variant="getLockedVariant(locked)"
+        :companion-code-name="locked.other?.codeName"
+        :companion-efficiency-percent="locked.other?.efficiencyPercent"
+        :companion-duration-hours="locked.other?.durationHours ?? 0"
+        :companion-category="locked.other?.category"
+        :companion-memo="locked.other?.memo"
+        :critical-code-name="locked.critical?.codeName"
+        :critical-efficiency-percent="locked.critical?.efficiencyPercent"
+        :critical-duration-hours="locked.critical?.durationHours"
+        :critical-memo="locked.triggersNextHalving ? '陪滿 5 小時，下一階段所需工作量已減半' : undefined"
       />
     </template>
   </div>
