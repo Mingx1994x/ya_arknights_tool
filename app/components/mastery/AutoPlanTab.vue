@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ArknightsClass, SkillPhase, SupportOperator } from '#shared/types/support-operator'
 import type { MasteryStageCandidates } from '~/types/mastery'
-import { CRITICAL_DEFAULT_DURATION_HOURS, suggestStagePlans } from '~/utils/mastery'
+import { suggestStagePlans } from '~/utils/mastery'
 
 const props = defineProps<{
   selectedProfession?: ArknightsClass
@@ -51,6 +51,19 @@ const suggestions = computed(() =>
   suggestStagePlans(groups.value.map((g) => g.phase), candidatesByPhase.value),
 )
 const suggestionByPhase = computed(() => new Map(suggestions.value.map((s) => [s.phase, s])))
+
+/**
+ * 各階段 `MasteryStageCard` 要用的顯示形式：專精三沒有下一階段可減半、不安排 critical 幹員，用 `base`；
+ * 其餘階段目前固定用 `general`，`critical`（只顯示 critical 欄位）先保留給之後的情境使用，
+ * 這裡先集中管理，之後有需要時只需調整這裡的判斷。
+ */
+const variantByPhase = computed(() => {
+  const map = new Map<SkillPhase, 'general' | 'base' | 'critical'>()
+  for (const group of groups.value) {
+    map.set(group.phase, group.phase === 3 ? 'base' : 'general')
+  }
+  return map
+})
 </script>
 
 <template>
@@ -75,58 +88,23 @@ const suggestionByPhase = computed(() => new Map(suggestions.value.map((s) => [s
       <p v-else-if="error" class="text-red-600">
         候選幹員查詢失敗，請稍後再試。
       </p>
-      <div
-        v-else
-        class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]"
-      >
-        <section
+      <div v-else class="flex flex-col gap-4">
+        <MasteryStageCard
           v-for="group in groups"
           :key="group.phase"
-          class="p-4 border border-gray-200 rounded-lg"
-        >
-          <h3 class="text-lg font-semibold mb-2">{{ STAGE_LABELS[group.phase] }}</h3>
-          <p class="text-gray-500 text-sm">
-            所需工作量：{{ formatHoursAsHm(suggestionByPhase.get(group.phase)!.requiredWork) }}
-          </p>
-
-          <template v-if="group.phase !== 3">
-            <p v-if="displayByPhase.get(group.phase)?.criticalCandidate" class="text-sm">
-              Critical 幹員：{{ displayByPhase.get(group.phase)!.criticalCandidate!.codeName
-              }}（+{{ displayByPhase.get(group.phase)!.criticalCandidate!.realEfficiency }}%），
-              陪同 {{ formatHoursAsHm(CRITICAL_DEFAULT_DURATION_HOURS) }}
-            </p>
-            <p v-else class="text-gray-500">目前沒有符合條件的 critical 候選幹員。</p>
-
-            <template v-if="displayByPhase.get(group.phase)?.criticalCandidate">
-              <p v-if="suggestionByPhase.get(group.phase)!.triggersNextHalving" class="text-green-600 text-sm">
-                陪滿 5 小時，下一階段所需工作量將減半
-              </p>
-              <p v-if="displayByPhase.get(group.phase)?.otherCandidate">
-                另一位陪練幹員：{{ displayByPhase.get(group.phase)!.otherCandidate!.codeName
-                }}（+{{ displayByPhase.get(group.phase)!.otherCandidate!.realEfficiency }}%）
-              </p>
-              <p v-else class="text-gray-500">目前沒有符合條件的陪練幹員。</p>
-              <p v-if="displayByPhase.get(group.phase)?.otherCandidate" class="font-medium">
-                建議陪同時間：{{
-                  suggestionByPhase.get(group.phase)!.otherOperatorDurationHours != null
-                    ? formatHoursAsHm(suggestionByPhase.get(group.phase)!.otherOperatorDurationHours!)
-                    : '不需要'
-                }}
-              </p>
-            </template>
-          </template>
-
-          <template v-else>
-            <p v-if="displayByPhase.get(group.phase)?.otherCandidate">
-              建議候選幹員：{{ displayByPhase.get(group.phase)!.otherCandidate!.codeName
-              }}（+{{ displayByPhase.get(group.phase)!.otherCandidate!.realEfficiency }}%）
-            </p>
-            <p v-else class="text-gray-500">目前沒有符合條件的候選幹員。</p>
-            <p v-if="suggestionByPhase.get(group.phase)?.otherOperatorDurationHours != null" class="font-medium">
-              建議陪同時間：{{ formatHoursAsHm(suggestionByPhase.get(group.phase)!.otherOperatorDurationHours!) }}
-            </p>
-          </template>
-        </section>
+          :title="STAGE_LABELS[group.phase]"
+          :required-work-hours="suggestionByPhase.get(group.phase)!.requiredWork"
+          :is-halved="group.phase > startStage"
+          :variant="variantByPhase.get(group.phase)"
+          :companion-code-name="displayByPhase.get(group.phase)?.otherCandidate?.codeName"
+          :companion-efficiency-percent="displayByPhase.get(group.phase)?.otherCandidate?.realEfficiency"
+          :companion-duration-hours="suggestionByPhase.get(group.phase)!.otherOperatorDurationHours ?? 0"
+          :companion-category="displayByPhase.get(group.phase)?.otherCandidate?.category"
+          :companion-memo="displayByPhase.get(group.phase)?.otherCandidate?.memo"
+          :critical-code-name="displayByPhase.get(group.phase)?.criticalCandidate?.codeName"
+          :critical-efficiency-percent="displayByPhase.get(group.phase)?.criticalCandidate?.realEfficiency"
+          :critical-memo="displayByPhase.get(group.phase)?.criticalCandidate?.memo"
+        />
       </div>
     </template>
   </div>

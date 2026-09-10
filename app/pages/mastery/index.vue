@@ -38,15 +38,17 @@ const activeTab = ref<'auto' | 'manual'>('auto')
       </button>
     </div>
 
-    <MasteryAutoPlanTab
-      v-if="activeTab === 'auto'"
-      :selected-profession="selectedProfession"
-      v-model:selected-skill-phase="selectedSkillPhase"
-    />
-    <MasteryManualPlanTab
-      v-else
-      :selected-profession="selectedProfession"
-      v-model:selected-skill-phase="selectedSkillPhase"
-    />
+    <KeepAlive>
+      <MasteryAutoPlanTab
+        v-if="activeTab === 'auto'"
+        :selected-profession="selectedProfession"
+        v-model:selected-skill-phase="selectedSkillPhase"
+      />
+      <MasteryManualPlanTab
+        v-else
+        :selected-profession="selectedProfession"
+        v-model:selected-skill-phase="selectedSkillPhase"
+      />
+    </KeepAlive>
   </div>
 </template>
