@@ -104,8 +104,15 @@ const lockedStageList = computed(() =>
     .reverse(),
 )
 
+/**
+ * 當前編輯階段是否已套用跨階段減半；起始階段宣告式視為未觸發（跟 AutoPlanTab 一致）。
+ * 在 `advanceToNextStage` 推進的當下直接寫入下一階段的值，讀取端不用反查 `lockedStages`。
+ */
+const isCurrentStageHalved = ref(false)
+
 function resetProgress() {
   currentStage.value = startStage.value
+  isCurrentStageHalved.value = false
   for (const phase of [1, 2, 3] as SkillPhase[]) {
     delete lockedStages[phase]
     Object.assign(planByStage[phase], createDefaultPlanState(phase))
@@ -113,12 +120,6 @@ function resetProgress() {
 }
 
 watch([startStage, professionRef], resetProgress)
-
-/** 這階段是否已經被上一階段的減半觸發套用；起始階段宣告式視為未觸發（跟 AutoPlanTab 一致）。 */
-const isCurrentStageHalved = computed(() => {
-  if (currentStage.value === startStage.value) return false
-  return lockedStages[(currentStage.value - 1) as SkillPhase]?.triggersNextHalving ?? false
-})
 
 /**
  * 該階段所需工作量：依「上一階段實際鎖定的 triggersNextHalving」決定，
@@ -249,6 +250,8 @@ function advanceToNextStage() {
         }
       : undefined,
   }
+  // 把剛完成階段的觸發結果帶到下一階段，讀取端不用反查 lockedStages。
+  isCurrentStageHalved.value = triggersNextHalving.value
   currentStage.value = (phase + 1) as SkillPhase
 }
 </script>

@@ -40,12 +40,12 @@ describe('getRequiredWork', () => {
     expect(getRequiredWork(1, false)).toBe(8)
   })
 
-  it('上一階段觸發減半時，本階段所需工作量減半', () => {
+  it('本階段已套用減半時，所需工作量減半', () => {
     expect(getRequiredWork(2, true)).toBe(8)
     expect(getRequiredWork(3, true)).toBe(12)
   })
 
-  it('上一階段未觸發減半時，維持原始所需工作量', () => {
+  it('本階段未套用減半時，維持原始所需工作量', () => {
     expect(getRequiredWork(2, false)).toBe(16)
     expect(getRequiredWork(3, false)).toBe(24)
   })

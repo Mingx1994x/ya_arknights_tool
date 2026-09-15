@@ -23,11 +23,12 @@ export function getRequiredWorkBase(phase: SkillPhase): number {
 /**
  * 領域文件第 4 節：跨階段減半規則。專精一沒有上一階段，恆不減半。
  *
- * @param previousPhaseTriggeredHalving - 上一階段是否陪同 Logos／艾麗妮累積滿 5 小時
+ * @param isHalved - 該階段本身是否已套用跨階段減半（通常代表上一階段陪同 Logos／艾麗妮
+ *   累積滿 5 小時）；是否減半由呼叫端決定，見 `AutoPlanTab`／`ManualPlanTab` 各自的判斷方式
  */
-export function getRequiredWork(phase: SkillPhase, previousPhaseTriggeredHalving: boolean): number {
+export function getRequiredWork(phase: SkillPhase, isHalved: boolean): number {
   const base = getRequiredWorkBase(phase)
-  return phase > 1 && previousPhaseTriggeredHalving ? base / 2 : base
+  return phase > 1 && isHalved ? base / 2 : base
 }
 
 /**
