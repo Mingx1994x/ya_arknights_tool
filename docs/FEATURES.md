@@ -19,7 +19,7 @@
 
 已完成：
 - `/mastery` 頁面：共用「職業／起始階段」選擇，切換「自動建議排程」（Tab A）／「手動模擬排程」（Tab B）兩個分頁。
-- 支援幹員資料層／`GET /api/support-operators`：已改為即時讀取 Google Sheets（見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），取代先前的 mock 資料；依 `class`／`fromSkill`（起始階段）回傳「起始階段→專精三」分組候選資料。`category === 'critical'`（Logos／艾麗妮）不受職業篩選限制、每組都會出現，`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入（`server/utils/support-operator-candidates.ts` 的 `resolveCriticalCandidates`）；其餘三類仍依職業篩選。每組除全量混合的 `candidates` 外，另附 `criticalCandidates` 便利欄位（`candidates` 篩出 critical 類別的子集，依 `realEfficiency` 排序），Tab A／Tab B 直接取用 `criticalCandidates[0]` 當 critical 候選，不用各自從混合陣列重新篩選。
+- 支援幹員資料層／`GET /api/support-operators`：已改為即時讀取 Google Sheets（見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），取代先前的 mock 資料；依 `class`／`fromSkill`（起始階段）回傳「起始階段→專精三」分組候選資料。`category === 'critical'`（Logos／艾麗妮）不受職業篩選限制、每組都會出現，`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入（`server/utils/support-operator-candidates.ts` 的 `resolveCriticalCandidates`）；`specific`（目前資料裡只有烏爾比安一筆）同樣不受職業篩選限制，一律列入候選，且跟 `critical` 一樣只有職業命中 `targetProfession` 才計入 `conditionEfficiency`（烏爾比安基礎 50%，命中近衛／輔助才加到 80%）；`general`／`skill` 仍依職業篩選（能出現在候選名單裡即代表職業已命中或未指定職業，`realEfficiency` 直接無條件相加）。所有類別的階段資格統一用 `targetPhase` 通用判斷（`0` 不限階段）。每組除全量混合的 `candidates` 外，另附 `criticalCandidates` 便利欄位（`candidates` 篩出 critical 類別的子集，依 `realEfficiency` 排序），Tab A／Tab B 直接取用 `criticalCandidates[0]` 當 critical 候選，不用各自從混合陣列重新篩選。
 - domain 文件第 3–6 節的基礎公式（`RequiredWorkBase`、跨階段減半、`phase.work`），純函式實作於 `app/utils/mastery.ts`，並有對照 domain 文件第 7 節範例驗算的 Vitest 單元測試（`tests/unit/mastery.test.ts`，`pnpm test` 執行）。
 - Tab B（`ManualPlanTab.vue`）採用**逐階段即時計算**流程：選好職業後先排「起始階段」，一次只顯示、編輯一個階段（`currentStage`）；每階段安排一位 critical 幹員（Logos／艾麗妮）陪同（下限 5hr、預設 5hr5min 含操作緩衝，專精三沒有下一階段可減半故不安排 critical 幹員，直接反推單一陪練幹員的所需時長）與一位陪練幹員，補滿所需工作量後可點「前往下一階段」，把目前階段結果鎖定成唯讀摘要卡片並前進。下一階段的 `RequiredWork(N)` 採用「上一階段**實際**鎖定的 `triggersNextHalving`」（依使用者真實填的陪同時長是否 `≥5hr` 判斷），起始階段本身宣告式視為未減半（跟 Tab A 一致）；改動「起始階段」或幹員職業會清空已鎖定階段、整個重新開始。已完成階段目前**尚未支援回頭編輯**（見下方「刻意尚未實作」）。
 - Tab A（`AutoPlanTab.vue`）採用跟 Tab B 概念上相同的策略（critical 幹員＋另一位陪練幹員），差別是候選幹員不用手動選：專精一、二自動挑該階段 `critical` 類別效率最高的當 critical 幹員（固定陪同 `CRITICAL_DEFAULT_DURATION_HOURS`）、非 `critical` 類別效率最高的當另一位陪練幹員；專精三自動挑整體效率最高的候選幹員。`suggestStagePlans` 把使用者選擇的起始階段（`phases[0]`）視為宣告式的假設起點，永遠當作未減半，之後的階段依序視為套用本策略而觸發減半（因為是「建議」而非使用者實際輸入，沒有 Tab B 那種逐階段鎖定機制）。
@@ -27,7 +27,7 @@
 刻意**尚未實作**（下一階段工作）：
 - **`ManualPlanTab.vue` 已鎖定階段尚未支援回頭編輯**：目前完成一階段並前進後，該階段變成唯讀摘要卡片，無法點擊調整。之後要支援時，只有 critical 幹員陪同時長跨過 5hr 門檻、使 `triggersNextHalving` 改變時才需要連動清空/重算後面已鎖定的階段（調整陪練幹員只影響該階段自己的建議陪同時間，不影響其他階段），見 [domain 文件第 9 節](./domain/arknights_tools_init.md#9-尚未收斂的部分)。
 - 目前只有「critical 幹員 + 一位陪練幹員」這一種預設策略；其他排程策略（例如使用者自己安排多段不同幹員陪同）尚未設計。
-- `category`（`specific`/`general`/`skill`）三類各自何時套用 `baseEfficiency` 與 `conditionEfficiency` 的完整商業邏輯尚未定案（見下方「尚未收斂的部分」）；`GET /api/support-operators` 對這三類仍是簡化版本，一律回傳 `realEfficiency = baseEfficiency + conditionEfficiency`。`critical` 類別（Logos／艾麗妮）已改為「不受職業篩選限制、`conditionEfficiency` 依職業命中與否決定是否計入」，「陪滿 5hr 才生效下一階段減半」的時間條件也已在 `planCriticalCompanionStage` 套用。
+- `category`（`specific`/`general`/`skill`）三類的「篩選資格」（職業／階段）已定案並實作（見 [domain 文件第 9 節](./domain/arknights_tools_init.md#9-尚未收斂的部分)：`specific` 不受職業篩選、`general`／`skill` 受職業篩選，所有類別的階段資格統一用 `targetPhase` 通用判斷）。`critical`／`specific` 兩類「不受職業篩選限制、`conditionEfficiency` 依職業命中與否決定是否計入」的規則也已定案並實作（`resolveConditionalEfficiency`）；`general`／`skill` 兩類因為能出現在候選名單裡即代表職業已命中，`realEfficiency` 維持無條件相加 `baseEfficiency + conditionEfficiency`。仍未定案的是更完整的商業邏輯（例如 `specific` 備注描述的情境條件本身是否該建模判定，而不是恆視為已達成）。「陪滿 5hr 才生效下一階段減半」的時間條件已在 `planCriticalCompanionStage` 套用。
 
 ### 功能目的
 
@@ -70,13 +70,13 @@ CompletedWork(N) = Σ phase.work
 
 ### 輸入資料
 
-- 陪同幹員的效率加成（`phase.efficiencyBonus`）：從 `GET /api/support-operators` 取得（即時讀取 Google Sheet「方舟專精計時器」，見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），型別為 `SupportOperatorRecord`（`shared/types/support-operator.ts`），API 已算好 `realEfficiency` 供計算引擎直接使用。`critical` 類別的職業命中判定已實作（見下方「尚未收斂的部分」）；**仍待確認**：`specific`／`general`／`skill` 三類各自何時套用 `baseEfficiency` 與 `conditionEfficiency` 的完整商業邏輯尚未定案。
+- 陪同幹員的效率加成（`phase.efficiencyBonus`）：從 `GET /api/support-operators` 取得（即時讀取 Google Sheet「方舟專精計時器」，見 [ARCHITECTURE.md](./ARCHITECTURE.md#第三方整合)），型別為 `SupportOperatorRecord`（`shared/types/support-operator.ts`），API 已算好 `realEfficiency` 供計算引擎直接使用。`critical`／`specific` 兩類的職業命中判定已實作（見下方「尚未收斂的部分」）；**仍待確認**：`general`／`skill` 兩類、以及 `specific` 備注描述的情境條件本身，完整商業邏輯尚未定案。
 - 使用者選擇的陪同幹員（critical 幹員／另一位陪練幹員）與 critical 幹員的陪同時長（可調整，下限 5hr）：Tab B 依此透過 `planCriticalCompanionStage` 反推另一位陪練幹員需要的陪同時長。
 
 ### 尚未收斂的部分（需求層面）
 
 以下摘自領域文件第 9 節，實作前應先確認，避免規則理解錯誤導致重工：
-- 陪同幹員的效率加成依幹員、依職業有不同數值（例如 Logos／艾麗妮平常 0%、對到專精職業 30%；烏爾比安不分職業 50%）。資料表結構已定案（`SupportOperatorRecord`）。**`critical` 已解決**：不受職業篩選限制（任何職業都會出現在候選名單裡），`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入 `realEfficiency`（`server/utils/support-operator-candidates.ts` 的 `resolveCriticalCandidates`）；陪滿 5hr 觸發下一階段減半的時間條件也已在 `planCriticalCompanionStage` 套用。`specific`／`general`／`skill` 三類完整的 `baseEfficiency`／`conditionEfficiency` 判定邏輯仍待設計，目前 API 對這三類仍先以「一律相加」簡化，`specific`（例如烏爾比安備註的宿舍搭配條件）尚未實作判定。
+- 陪同幹員的效率加成依幹員、依職業有不同數值（例如 Logos／艾麗妮平常 0%、對到專精職業 30%；烏爾比安平常 50%、對到近衛／輔助加到 80%）。資料表結構已定案（`SupportOperatorRecord`）。**`critical`／`specific` 已解決**：兩類都不受職業篩選限制（任何職業都會出現在候選名單裡），`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入 `realEfficiency`（`server/utils/support-operator-candidates.ts` 共用的 `resolveConditionalEfficiency`）；陪滿 5hr 觸發下一階段減半的時間條件也已在 `planCriticalCompanionStage` 套用（僅 critical 適用）。`general`／`skill` 兩類仍受職業篩選、`realEfficiency` 無條件相加，完整判定邏輯仍待設計；`specific` 備注描述的情境條件本身（例如烏爾比安「宿舍要帶 3+1 睡覺幹員」是否真的達成）目前仍恆視為已達成，尚未實作判定。
 - 陪同時間不連續（分好幾段陪同）時，「累積滿 5 小時」的判定是否有例外，尚未和實際遊戲行為交叉驗證。
 
 ### 錯誤情境（規劃）

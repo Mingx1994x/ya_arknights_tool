@@ -21,4 +21,10 @@
 - `SupportOperatorPhaseGroup`（`shared/types/support-operator.ts`）新增 `criticalCandidates` 便利欄位：`server/utils/support-operator-candidates.ts` 的 `resolveCandidatesByPhase()` 每組多回傳 `candidates` 篩出 `category === 'critical'` 的子集（同樣依 `realEfficiency` 排序），`candidates` 本身維持不變、不排除 critical。`AutoPlanTab.vue`／`ManualPlanTab.vue` 改直接取用 `criticalCandidates`，不用再各自從混合陣列 `.find`/`.filter` 篩一次；新增 `tests/unit/support-operator-candidates.test.ts` 驗證此欄位。
 
 ### Fixed
+- 修正 `server/utils/support-operator-candidates.ts` 的 `resolveCandidatesByPhase()` 候選幹員篩選規則：
+  - 階段資格改用 `targetPhase` 通用判斷（`0` = 不限階段、1/2/3 = 限定階段），取代原本寫死「只有 `category === 'skill'` 才檢查 `targetPhase`」的判斷。
+  - `specific` 類別（目前資料裡只有烏爾比安一筆）不再受職業（`targetClass`）篩選錯誤排除——原本的篩選邏輯會讓它只在職業命中 `targetProfession`（近衛/輔助）時才出現在候選名單，現在改成一律列入候選；`general`／`skill` 仍依職業篩選。
+  - 承上，`specific` 類別的 `realEfficiency` 改用跟 `critical` 相同的規則計算：`baseEfficiency` 恆生效，`conditionEfficiency` 只在職業命中 `targetProfession` 時才計入（烏爾比安基礎 50%，命中近衛／輔助才加到 80%）——不受職業篩選排除後，若沒有這條規則會讓職業不符時也錯誤顯示 80%。
+  - 「職業是否命中」拉成共用函式 `matchesTargetProfession()`（回傳 `boolean`，未指定職業視為不命中），供職業篩選判斷與新增的 `resolveConditionalEfficiency()`（計算「職業命中才計入 conditionEfficiency」的 realEfficiency）共用，`resolveCriticalCandidates()` 也改呼叫這兩個共用函式（行為不變，去除原本重複的判斷邏輯）。
+  - 詳見 [domain 文件第 9 節](./domain/arknights_tools_init.md#9-尚未收斂的部分)。
 - **修正專精工作量公式：基地 5% 加成改為與陪同幹員效率加成相加，而非分開相乘**（`app/utils/mastery.ts` 的 `getRequiredWorkBase`／`calcPhaseWork`／`calcDurationForWork`，`docs/domain/arknights_tools_init.md` 第 3、5、7 節）。原公式 `RequiredWorkBase(N) = Tbase(N) / 1.05` 搭配 `phase.work = duration × (1 + efficiencyBonus/100)`，等同把 5% 跟陪同加成用相乘方式合併；比對 Google 試算表「方舟專精計時器」的對照組公式，以及使用者實際操作專精一（水陳 95% 加成 → 切換艾麗妮 30% 加成）時遊戲介面顯示的倒數時間，發現相乘模型穩定偏差 4～5.5 分鐘，改成相加模型（`RequiredWorkBase(N) = Tbase(N)`，`phase.work = duration × (1 + 0.05 + efficiencyBonus/100)`）後，三個檢查點誤差都在 1 分半內。
