@@ -40,6 +40,8 @@ export function resolveCriticalCandidates(
  * - 其餘三類（specific/general/skill）未帶 targetClass 時不做職業篩選；
  *   `category === 'skill'` 的幹員只在 targetPhase 命中該組的 phase 時才列入，
  *   specific／general 不限階段，每一組都會出現。
+ * - 每組另外附上 `criticalCandidates`（`candidates` 篩出 critical 類別的子集，
+ *   同樣依 realEfficiency 排序），方便呼叫端直接取用不用重新篩選。
  */
 export function resolveCandidatesByPhase(
   operators: SupportOperatorRecord[],
@@ -69,6 +71,6 @@ export function resolveCandidatesByPhase(
       (a, b) => b.realEfficiency - a.realEfficiency,
     );
 
-    return { phase, candidates };
+    return { phase, candidates, criticalCandidates };
   });
 }

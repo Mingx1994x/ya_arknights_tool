@@ -28,7 +28,7 @@ const displayByPhase = computed(() => {
   const map = new Map<SkillPhase, StageDisplayCandidates>()
   for (const group of groups.value) {
     map.set(group.phase, {
-      criticalCandidate: group.candidates.find((c) => c.category === 'critical'),
+      criticalCandidate: group.criticalCandidates[0],
       otherCandidate:
         group.phase === 3 ? group.candidates[0] : group.candidates.find((c) => c.category !== 'critical'),
     })

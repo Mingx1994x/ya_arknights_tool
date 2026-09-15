@@ -25,7 +25,7 @@ const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二
 
 /** groups[0] 必為目前 currentStage（API 以 currentStage.value 當 fromSkill，回傳陣列第一筆即該階段）。 */
 const currentStageCandidates = computed(() => groups.value[0]?.candidates ?? [])
-const criticalCandidates = computed(() => currentStageCandidates.value.filter((c) => c.category === 'critical'))
+const criticalCandidates = computed(() => groups.value[0]?.criticalCandidates ?? [])
 const otherCandidates = computed(() => currentStageCandidates.value.filter((c) => c.category !== 'critical'))
 
 type StageVariant = 'general' | 'base' | 'critical' | 'final'

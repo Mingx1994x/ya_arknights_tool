@@ -64,5 +64,8 @@ export type SupportOperator = SupportOperatorRecord & {
  */
 export type SupportOperatorPhaseGroup = {
   phase: SkillPhase;
+  /** 全部 4 類混合、依 realEfficiency 排序，critical 不從中排除 */
   candidates: SupportOperator[];
+  /** 僅 category === 'critical'，同樣依 realEfficiency 排序，方便直接取用 */
+  criticalCandidates: SupportOperator[];
 };

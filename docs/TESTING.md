@@ -2,7 +2,7 @@
 
 ## 現況說明
 
-**已安裝 Vitest**（`pnpm add -D vitest`），`package.json` 已有 `test`（`vitest run`）／`test:watch`（`vitest`）script。測試檔案獨立於 `tests/` 目錄管理，不與被測程式碼放在同一個資料夾（見下方「測試目錄結構」）。目前只有 `app/utils/mastery.ts` 的純函式單元測試（`tests/unit/mastery.test.ts`），尚未安裝 `@nuxt/test-utils`／`@vue/test-utils`／`happy-dom`，composable／元件測試仍是規劃中，需要時再引入。
+**已安裝 Vitest**（`pnpm add -D vitest`），`package.json` 已有 `test`（`vitest run`）／`test:watch`（`vitest`）script。測試檔案獨立於 `tests/` 目錄管理，不與被測程式碼放在同一個資料夾（見下方「測試目錄結構」）。目前有 `app/utils/mastery.ts`（`tests/unit/mastery.test.ts`）與 `server/utils/support-operator-candidates.ts`（`tests/unit/support-operator-candidates.test.ts`）的純函式單元測試，尚未安裝 `@nuxt/test-utils`／`@vue/test-utils`／`happy-dom`，composable／元件測試仍是規劃中，需要時再引入。
 
 ## 測試目錄結構
 
@@ -64,3 +64,4 @@ describe('calcPhaseWork', () => {
 | 檔案 | 依賴 | 說明 |
 | --- | --- | --- |
 | `tests/unit/mastery.test.ts` | `app/utils/mastery.ts`（無 mock，不需特定執行順序） | 對照 `docs/domain/arknights_tools_init.md` 第 7 節範例驗算，涵蓋 `getRequiredWorkBase`／`getRequiredWork`／`calcPhaseWork`／`calcDurationForWork`／`planCriticalCompanionStage`／`suggestStagePlans`／`formatHoursAsHm` |
+| `tests/unit/support-operator-candidates.test.ts` | `server/utils/support-operator-candidates.ts`（無 mock，不需特定執行順序） | 驗證 `resolveCandidatesByPhase()` 回傳的 `criticalCandidates` 只含 `category === 'critical'`、依 `realEfficiency` 排序，且等於 `candidates.filter(c => c.category === 'critical')`；`candidates` 本身仍包含 critical，不因新增便利欄位而被排除 |
