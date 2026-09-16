@@ -1,14 +1,26 @@
 import type { SkillPhase } from '#shared/types/support-operator'
 
+export type BaseCompanionPlan = {
+  /** 陪練幹員需要的陪同時長（分鐘），直接反推、沒有 critical 幹員分攤 */
+  operatorDurationMinutes: number
+}
+
+export type CriticalOnlyCompanionPlan = {
+  /** critical 幹員單獨補滿所需工作量需要的陪同時長（分鐘） */
+  operatorDurationMinutes: number
+  /** 陪同時長是否達到 5hr 門檻，觸發下一階段減半 */
+  triggersNextHalving: boolean
+}
+
 export type CriticalCompanionPlan = {
   /** critical 幹員這段陪同時長換算後的工作量 */
   criticalWork: number
-  /** 另一位陪練幹員需要的陪同時長；critical 幹員已補滿或超過所需工作量時為 `null`（畫面顯示「不需要」） */
-  otherOperatorDurationHours: number | null
+  /** 另一位陪練幹員需要的陪同時長（分鐘）；critical 幹員已補滿或超過所需工作量時為 `null`（畫面顯示「不需要」） */
+  otherOperatorDurationMinutes: number | null
   /** critical 幹員陪同是否達到 5hr 門檻，觸發下一階段減半 */
   triggersNextHalving: boolean
-  /** critical 幹員陪同時長上限：超過會讓 `criticalWork` 超過 `requiredWork`，UI 可用來限制輸入上限 */
-  maxCriticalDurationHours: number
+  /** critical 幹員陪同時長上限（分鐘）：超過會讓 `criticalWork` 超過 `requiredWork`，UI 可用來限制輸入上限 */
+  maxCriticalDurationMinutes: number
 }
 
 export type MasteryTopCandidate = {
@@ -27,7 +39,7 @@ export type MasteryStageAutoPlan = {
   requiredWork: number
   /** critical 幹員這段陪同時長換算後的工作量；專精三不安排 critical 幹員，固定為 `null` */
   criticalWork: number | null
-  /** 建議陪同時長：專精一、二是「另一位陪練幹員」需要的時長，專精三是唯一陪練幹員需要的時長；沒有候選幹員時為 `null` */
-  otherOperatorDurationHours: number | null
+  /** 建議陪同時長（分鐘）：專精一、二是「另一位陪練幹員」需要的時長（critical 幹員時長已由策略固定為 `CRITICAL_DEFAULT_DURATION_MINUTES`，不需另外回傳），專精三是唯一陪練幹員需要的時長；沒有候選幹員時為 `null` */
+  operatorDurationMinutes: number | null
   triggersNextHalving: boolean
 }
