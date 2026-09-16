@@ -21,9 +21,14 @@ const props = withDefaults(
     criticalOnlyDurationMinutes?: number | null
     /** critical 幹員陪同是否達到 5hr 門檻、觸發下一階段減半 */
     triggersNextHalving?: boolean
+    /**
+     * 使用者輸入的「時」／「分」字面值本身是否超出合理範圍（分不介於 0–59、時或分為負數），
+     * 跟 `isCriticalDurationClamped` 是不同原因，各自顯示對應的提示文字，兩者互斥（優先顯示這個）。
+     */
+    isCriticalInputInvalid?: boolean
     /** critical 幹員陪同時長是否已達上限（超過會讓 critical 自己補滿所需工時） */
     isCriticalDurationClamped?: boolean
-    /** 上限限制後實際套用的 critical 陪同時長（分鐘），isCriticalDurationClamped 為 true 時用來顯示提示文字 */
+    /** 上限限制後實際套用的 critical 陪同時長（分鐘），isCriticalInputInvalid／isCriticalDurationClamped 為 true 時用來顯示提示文字 */
     effectiveCriticalDurationMinutes?: number
     /** 目前階段是否已經可以前往下一階段 */
     canAdvance?: boolean
@@ -35,6 +40,7 @@ const props = withDefaults(
     companionDurationMinutes: null,
     criticalOnlyDurationMinutes: null,
     triggersNextHalving: false,
+    isCriticalInputInvalid: false,
     isCriticalDurationClamped: false,
     effectiveCriticalDurationMinutes: 0,
     canAdvance: false,
@@ -202,8 +208,12 @@ const plusColSpanClass = computed(
                 分
               </span>
             </label>
-            <p v-if="isCriticalDurationClamped" class="text-sm text-amber-600">
-              已達上限，超過會讓 critical 幹員單獨補滿所需工時，實際計算已自動改用
+            <p v-if="isCriticalInputInvalid" class="text-sm text-amber-600">
+              輸入格式有誤，實際計算已自動改用
+              {{ formatMinutesAsHm(effectiveCriticalDurationMinutes) }}。
+            </p>
+            <p v-else-if="isCriticalDurationClamped" class="text-sm text-amber-600">
+              已達工時上限，實際計算已自動改用
               {{ formatMinutesAsHm(effectiveCriticalDurationMinutes) }}。
             </p>
           </template>
