@@ -7,6 +7,7 @@ import {
   criticalCompanionStage,
   generalCompanionStage,
   getRequiredWork,
+  normalizeCriticalDurationInput,
 } from '~/utils/mastery'
 
 const props = defineProps<{
@@ -136,26 +137,16 @@ const otherOperator = computed(() =>
 )
 
 /**
- * 使用者輸入的「時」＋「分」直接相加成分鐘，整數運算不經過 `/60`，避免小時制下的浮點數誤差（見領域文件第 2 節）。
- * 輸入框清空、打負數或非數字時視為 0；分鐘部分額外限制在 0–59（超過視為打錯，而非刻意表達進位後的時長，
- * 例如打「70 分」不會被當成「多 10 分」疊加進小時，直接鉗制成 59 分）。
+ * 使用者輸入的「時」／「分」正規化結果：驗證規則統一收斂在 `normalizeCriticalDurationInput`（純函式，
+ * 附單元測試），避免「換算成分鐘」與「判斷輸入是否超出合理範圍」這兩處各自重複定義同一組規則、
+ * 之後改規則卻只改到一處的風險。
  */
-const rawCriticalDurationMinutes = computed(() => {
-  const hours = Math.max(0, Number(currentState.value.criticalHours) || 0)
-  const minutes = Math.min(59, Math.max(0, Number(currentState.value.criticalMinutes) || 0))
-  return hours * 60 + minutes
-})
-
-/**
- * 使用者輸入的「時」／「分」字面值本身是否超出合理範圍（分不介於 0–59、時或分為負數／非數字），
- * 跟 `isCriticalDurationClamped`（換算後超過本階段所需工時上限）是兩種不同原因，UI 顯示不同提示文字，
- * 避免使用者看到跟自己輸入對不起來的計算結果卻不知道為什麼。
- */
-const isCriticalInputInvalid = computed(() => {
-  const hours = Number(currentState.value.criticalHours)
-  const minutes = Number(currentState.value.criticalMinutes)
-  return !Number.isFinite(hours) || hours < 0 || !Number.isFinite(minutes) || minutes < 0 || minutes > 59
-})
+const normalizedCriticalInput = computed(() =>
+  normalizeCriticalDurationInput(currentState.value.criticalHours, currentState.value.criticalMinutes),
+)
+const rawCriticalDurationMinutes = computed(() => normalizedCriticalInput.value.minutes)
+/** 跟 `isCriticalDurationClamped`（換算後超過本階段所需工時上限）是兩種不同原因，UI 顯示不同提示文字。 */
+const isCriticalInputInvalid = computed(() => normalizedCriticalInput.value.isInvalid)
 
 /** critical 幹員陪同時長上限：超過會讓 criticalWork 超過 RequiredWork(N)，正常遊戲數值不會需要用到，僅供輸入防呆。 */
 const maxCriticalDurationMinutes = computed(() => {

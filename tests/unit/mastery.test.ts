@@ -11,6 +11,7 @@ import {
   generalCompanionStage,
   getRequiredWork,
   getRequiredWorkBase,
+  normalizeCriticalDurationInput,
   suggestStagePlans,
 } from '../../app/utils/mastery'
 import type { MasteryStageCandidates } from '../../app/types/mastery'
@@ -81,6 +82,41 @@ describe('calcDurationForWork', () => {
 
   it('對照領域文件第 7 節：RequiredWorkBase(1) 除以水陳 rate(2.00) 得到畫面顯示的倒數 4hr（240 分鐘）', () => {
     expect(calcDurationForWork(getRequiredWorkBase(1), 95)).toBeCloseTo(240, 6)
+  })
+})
+
+describe('normalizeCriticalDurationInput', () => {
+  it('合法輸入直接相加成分鐘，不視為 invalid', () => {
+    const result = normalizeCriticalDurationInput(5, 5)
+
+    expect(result.minutes).toBe(305)
+    expect(result.isInvalid).toBe(false)
+  })
+
+  it('分鐘超過 59 時鉗制為 59，並標記為 invalid（例如「4 小時 70 分」不會被當成 4 小時 70 分疊加）', () => {
+    const result = normalizeCriticalDurationInput(4, 70)
+
+    expect(result.minutes).toBe(4 * 60 + 59)
+    expect(result.isInvalid).toBe(true)
+  })
+
+  it('時或分為負數時視為 0，並標記為 invalid', () => {
+    expect(normalizeCriticalDurationInput(-1, 5)).toEqual({ minutes: 5, isInvalid: true })
+    expect(normalizeCriticalDurationInput(5, -1)).toEqual({ minutes: 300, isInvalid: true })
+  })
+
+  it('輸入框清空時（對應 Vue v-model.number 的空字串）視為 0，不標記為 invalid', () => {
+    const result = normalizeCriticalDurationInput(Number(''), Number(''))
+
+    expect(result.minutes).toBe(0)
+    expect(result.isInvalid).toBe(false)
+  })
+
+  it('分鐘恰為 59 時仍是合法邊界值，不標記為 invalid', () => {
+    const result = normalizeCriticalDurationInput(4, 59)
+
+    expect(result.minutes).toBe(4 * 60 + 59)
+    expect(result.isInvalid).toBe(false)
   })
 })
 

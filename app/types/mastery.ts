@@ -23,6 +23,13 @@ export type CriticalCompanionPlan = {
   maxCriticalDurationMinutes: number
 }
 
+export type NormalizedCriticalDurationInput = {
+  /** 正規化後的總分鐘數：「時」鉗制在 ≥ 0，「分」鉗制在 0–59，兩者相加；非數字或負數視為 0 */
+  minutes: number
+  /** 使用者輸入的「時」／「分」字面值本身是否超出合理範圍（分不介於 0–59、時或分為負數／非數字） */
+  isInvalid: boolean
+}
+
 export type MasteryTopCandidate = {
   efficiencyPercent: number
 }

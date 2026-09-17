@@ -5,6 +5,7 @@ import type {
   CriticalOnlyCompanionPlan,
   MasteryStageAutoPlan,
   MasteryStageCandidates,
+  NormalizedCriticalDurationInput,
 } from '~/types/mastery'
 
 /** 基建提供的專精速度加成（見領域文件第 3 節） */
@@ -57,6 +58,31 @@ export function calcPhaseWork(durationMinutes: number, efficiencyPercent: number
  */
 export function calcDurationForWork(targetWork: number, efficiencyPercent: number): number {
   return targetWork / (1 + BUILD_SPEED_BONUS + efficiencyPercent / 100)
+}
+
+/**
+ * 使用者輸入的「時」＋「分」正規化成分鐘數：整數相加，不經過 `/60`，避免小時制下的浮點數誤差
+ * （見領域文件第 2 節）。輸入框清空、打負數或非數字時視為 `0`；「分」額外鉗制在 0–59（例如打「70 分」
+ * 不會被當成「多 10 分」疊加進小時，直接視為 59 分）。`isInvalid` 標記使用者字面輸入本身是否超出這個
+ * 合理範圍，供 UI 顯示「輸入格式有誤」之類的提示，區別於「換算後超過本階段所需工時上限」的另一種提示。
+ *
+ * @param hours - 使用者輸入的「時」欄位字面值
+ * @param minutes - 使用者輸入的「分」欄位字面值
+ */
+export function normalizeCriticalDurationInput(hours: number, minutes: number): NormalizedCriticalDurationInput {
+  const parsedHours = Number(hours)
+  const parsedMinutes = Number(minutes)
+  const isInvalid =
+    !Number.isFinite(parsedHours) ||
+    parsedHours < 0 ||
+    !Number.isFinite(parsedMinutes) ||
+    parsedMinutes < 0 ||
+    parsedMinutes > 59
+
+  const safeHours = Math.max(0, parsedHours || 0)
+  const safeMinutes = Math.min(59, Math.max(0, parsedMinutes || 0))
+
+  return { minutes: safeHours * 60 + safeMinutes, isInvalid }
 }
 
 /**

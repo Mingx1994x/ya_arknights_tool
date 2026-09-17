@@ -63,5 +63,5 @@ describe('calcPhaseWork', () => {
 
 | 檔案 | 依賴 | 說明 |
 | --- | --- | --- |
-| `tests/unit/mastery.test.ts` | `app/utils/mastery.ts`（無 mock，不需特定執行順序） | 對照 `docs/domain/arknights_tools_init.md` 第 7 節範例驗算，涵蓋 `getRequiredWorkBase`／`getRequiredWork`／`calcPhaseWork`／`calcDurationForWork`／`baseCompanionStage`／`criticalCompanionStage`／`generalCompanionStage`／`suggestStagePlans`／`formatMinutesAsHm` |
+| `tests/unit/mastery.test.ts` | `app/utils/mastery.ts`（無 mock，不需特定執行順序） | 對照 `docs/domain/arknights_tools_init.md` 第 7 節範例驗算，涵蓋 `getRequiredWorkBase`／`getRequiredWork`／`calcPhaseWork`／`calcDurationForWork`／`normalizeCriticalDurationInput`／`baseCompanionStage`／`criticalCompanionStage`／`generalCompanionStage`／`suggestStagePlans`／`formatMinutesAsHm` |
 | `tests/unit/support-operator-candidates.test.ts` | `server/utils/support-operator-candidates.ts`（無 mock，不需特定執行順序） | 驗證 `resolveCandidatesByPhase()` 回傳的 `criticalCandidates` 只含 `category === 'critical'`、依 `realEfficiency` 排序，且等於 `candidates.filter(c => c.category === 'critical')`；`candidates` 本身仍包含 critical，不因新增便利欄位而被排除 |
