@@ -1,5 +1,5 @@
 import type {
-  ArknightsClass,
+  OperatorProfession,
   SupportOperatorPhaseGroup,
   SkillPhase,
 } from '#shared/types/support-operator';
@@ -9,7 +9,7 @@ import type {
  * 分組後的候選輔訓幹員清單，class/skill 變動時會自動重新查詢。
  */
 export function useSupportOperators(
-  selectedProfession: Ref<ArknightsClass | undefined>,
+  selectedProfession: Ref<OperatorProfession | undefined>,
   selectedSkillPhase: Ref<SkillPhase | undefined>,
 ) {
   return useFetch('/api/support-operators', {

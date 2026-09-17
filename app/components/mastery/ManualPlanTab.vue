@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ArknightsClass, SkillPhase, SupportOperatorCategory } from '#shared/types/support-operator'
+import type { OperatorProfession, SkillPhase, SupportOperatorCategory } from '#shared/types/support-operator'
 import {
   CRITICAL_DEFAULT_DURATION_MINUTES,
   baseCompanionStage,
@@ -11,7 +11,7 @@ import {
 } from '~/utils/mastery'
 
 const props = defineProps<{
-  selectedProfession?: ArknightsClass
+  selectedProfession?: OperatorProfession
 }>()
 
 const startStage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })

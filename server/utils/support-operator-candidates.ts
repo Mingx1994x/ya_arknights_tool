@@ -1,5 +1,5 @@
 import type {
-  ArknightsClass,
+  OperatorProfession,
   SkillPhase,
   SupportOperator,
   SupportOperatorPhaseGroup,
@@ -14,7 +14,7 @@ const ALL_PHASES: SkillPhase[] = [1, 2, 3];
  */
 export function matchesTargetProfession(
   operator: SupportOperatorRecord,
-  targetClass: ArknightsClass | undefined,
+  targetClass: OperatorProfession | undefined,
 ): boolean {
   return Boolean(targetClass && operator.targetProfession.includes(targetClass));
 }
@@ -25,7 +25,7 @@ export function matchesTargetProfession(
  */
 function resolveConditionalEfficiency(
   operator: SupportOperatorRecord,
-  targetClass: ArknightsClass | undefined,
+  targetClass: OperatorProfession | undefined,
 ): number {
   return operator.baseEfficiency + (matchesTargetProfession(operator, targetClass) ? operator.conditionEfficiency : 0);
 }
@@ -40,7 +40,7 @@ function resolveConditionalEfficiency(
  */
 export function resolveCriticalCandidates(
   operators: SupportOperatorRecord[],
-  targetClass: ArknightsClass | undefined,
+  targetClass: OperatorProfession | undefined,
 ): SupportOperator[] {
   return operators
     .filter((operator) => operator.category === 'critical')
@@ -71,7 +71,7 @@ export function resolveCriticalCandidates(
  */
 export function resolveCandidatesByPhase(
   operators: SupportOperatorRecord[],
-  targetClass: ArknightsClass | undefined,
+  targetClass: OperatorProfession | undefined,
   fromPhase: SkillPhase,
 ): SupportOperatorPhaseGroup[] {
   const criticalCandidates = resolveCriticalCandidates(operators, targetClass);

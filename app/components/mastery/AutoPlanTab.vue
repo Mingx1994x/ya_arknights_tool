@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { ArknightsClass, SkillPhase, SupportOperator } from '#shared/types/support-operator'
+import type { OperatorProfession, SkillPhase, SupportOperator } from '#shared/types/support-operator'
 import type { MasteryStageCandidates } from '~/types/mastery'
 import { suggestStagePlans } from '~/utils/mastery'
 
 const props = defineProps<{
-  selectedProfession?: ArknightsClass
+  selectedProfession?: OperatorProfession
 }>()
 
 const startStage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })

@@ -1,11 +1,11 @@
 import type {
-  ArknightsClass,
+  OperatorProfession,
   SkillPhase,
 } from '#shared/types/support-operator';
 import { getSupportOperators } from '../utils/support-operators.data';
 import { resolveCandidatesByPhase } from '../utils/support-operator-candidates';
 
-const VALID_CLASSES: ArknightsClass[] = [
+const VALID_CLASSES: OperatorProfession[] = [
   '先鋒',
   '近衛',
   '重裝',
@@ -40,15 +40,15 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const { class: operatorProfession, fromSkill: rawFromSkill } = query;
 
-  let targetClass: ArknightsClass | undefined;
+  let targetClass: OperatorProfession | undefined;
   if (typeof operatorProfession === 'string' && operatorProfession.length > 0) {
-    if (!VALID_CLASSES.includes(operatorProfession as ArknightsClass)) {
+    if (!VALID_CLASSES.includes(operatorProfession as OperatorProfession)) {
       throw createError({
         statusCode: 400,
         statusMessage: `無效的 class 參數："${operatorProfession}"，須為 ${VALID_CLASSES.join('/')} 其中之一`,
       });
     }
-    targetClass = operatorProfession as ArknightsClass;
+    targetClass = operatorProfession as OperatorProfession;
   }
 
   let fromPhase: SkillPhase = 1;
