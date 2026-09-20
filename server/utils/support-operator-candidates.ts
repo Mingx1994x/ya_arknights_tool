@@ -21,7 +21,7 @@ export function matchesTargetProfession(
 
 /**
  * 計算「職業命中才計入 conditionEfficiency」的 realEfficiency：未命中則只有
- * baseEfficiency。critical／specific 兩類都適用這個規則（見下方各自的說明）。
+ * baseEfficiency。critical／specific／general／skill 四類皆適用這個規則（見下方各自的說明）。
  */
 function resolveConditionalEfficiency(
   operator: SupportOperatorRecord,
@@ -61,8 +61,10 @@ export function resolveCriticalCandidates(
  *   `conditionEfficiency` 只在職業命中 `targetProfession` 時才計入（例如烏爾比安基礎
  *   50%，命中近衛／輔助才加到 80%，備注「宿舍要帶 3+1 睡覺幹員」是達成條件的情境描述，
  *   目前不由程式判斷，恆視為已達成）。`general`／`skill` 兩類仍依 targetClass 篩選
- *   （未帶 targetClass 時不篩），realEfficiency 維持 `baseEfficiency + conditionEfficiency`
- *   無條件相加（因為能出現在候選名單裡就代表職業已命中，或使用者未指定職業）。
+ *   （未帶 targetClass 時不篩，此時所有 general／skill 都列入候選），realEfficiency
+ *   同樣改用 `resolveConditionalEfficiency`：未帶 targetClass 時退回只剩 baseEfficiency，
+ *   跟 critical／specific 一致（前端實際使用流程一定先選職業才會觸發查詢，這裡純粹是
+ *   後端在沒有職業參數時的防呆邏輯要跟其他類別對齊，不因為候選名單有篩選就假設一定命中）。
  * - 所有類別的「階段資格」統一用 `targetPhase` 通用判斷：`targetPhase === 0` 代表不限
  *   階段，任一組都會出現；為 1/2/3 時只在對應 phase 的那組出現。目前只有 `skill` 類別
  *   的資料有非 0 的 targetPhase，但邏輯不再寫死綁定 `category === 'skill'`。
@@ -94,10 +96,7 @@ export function resolveCandidatesByPhase(
       })
       .map((operator) => ({
         ...operator,
-        realEfficiency:
-          operator.category === 'specific'
-            ? resolveConditionalEfficiency(operator, targetClass)
-            : operator.baseEfficiency + operator.conditionEfficiency,
+        realEfficiency: resolveConditionalEfficiency(operator, targetClass),
       }));
 
     const candidates = [...criticalCandidates, ...otherCandidates].sort(

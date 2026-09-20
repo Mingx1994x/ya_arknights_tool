@@ -101,8 +101,10 @@ describe('resolveCandidatesByPhase 的 criticalCandidates 欄位', () => {
 // specific 類別（例如烏爾比安）不受 targetClass 篩選排除，一律列入候選；但跟 critical
 // 一樣，conditionEfficiency 只在職業命中 targetProfession 時才計入 realEfficiency，
 // 未命中則只有 baseEfficiency（烏爾比安基礎 50%，命中近衛/輔助才加到 80%）；
-// general／skill 仍受 targetClass 篩選；所有類別的階段資格統一用 targetPhase 通用判斷
-// （0 = 不限階段）。
+// general／skill 仍受 targetClass 篩選（未帶 targetClass 時不篩），但 realEfficiency
+// 同樣改用職業命中才計入 conditionEfficiency 的規則，未帶 targetClass 時退回只剩
+// baseEfficiency，四個類別的計算規則一致；所有類別的階段資格統一用 targetPhase
+// 通用判斷（0 = 不限階段）。
 describe('resolveCandidatesByPhase 的職業／階段篩選規則', () => {
   it('specific 類別不受職業篩選，職業不符時仍列入候選，但 realEfficiency 只剩 baseEfficiency', () => {
     // 烏爾比安 targetProfession 是 近衛/輔助，這裡選狙擊（不命中）
@@ -134,6 +136,15 @@ describe('resolveCandidatesByPhase 的職業／階段篩選規則', () => {
     const [group] = resolveCandidatesByPhase(OPERATORS, '醫療', 1)
 
     expect(group.candidates.some((c) => c.codeName === '黑')).toBe(false)
+  })
+
+  it('未帶 targetClass 時，skill 類別依然列入候選，但 realEfficiency 只剩 baseEfficiency（跟 critical/specific 一致）', () => {
+    // 假日威龍陳 baseEfficiency 30／conditionEfficiency 65，未帶職業時 conditionEfficiency 不應計入
+    const [group] = resolveCandidatesByPhase(OPERATORS, undefined, 1)
+
+    const skillOperator = group.candidates.find((c) => c.codeName === '假日威龍陳')
+    expect(skillOperator).toBeDefined()
+    expect(skillOperator?.realEfficiency).toBe(30)
   })
 
   it('skill 類別的 targetPhase 篩選行為不變：只在對應 phase 的那組出現', () => {
