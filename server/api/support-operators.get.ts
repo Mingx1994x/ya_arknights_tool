@@ -1,11 +1,11 @@
 import type {
-  ArknightsClass,
+  OperatorProfession,
   SkillPhase,
 } from '#shared/types/support-operator';
 import { getSupportOperators } from '../utils/support-operators.data';
 import { resolveCandidatesByPhase } from '../utils/support-operator-candidates';
 
-const VALID_CLASSES: ArknightsClass[] = [
+const VALID_CLASSES: OperatorProfession[] = [
   '先鋒',
   '近衛',
   '重裝',
@@ -21,11 +21,16 @@ const VALID_SKILLS = [1, 2, 3] as const;
 /**
  * GET /api/support-operators?class=狙擊&fromSkill=2
  *
- * - 不帶 class：不做職業篩選；帶 class：只保留 targetProfession 包含該職業的幹員。
+ * - 不帶 class：不做職業篩選；帶 class：`general`／`skill` 只保留 targetProfession 包含
+ *   該職業的幹員，`critical`／`specific` 不受職業篩選限制（見 docs/domain/arknights_tools_init.md
+ *   第 9 節）。
  * - fromSkill 代表「起始階段」，缺省預設為 1；回傳範圍是 fromSkill → 專精三，
- *   依階段分組，每組各自依現有規則篩選（skill 類必須 targetPhase 命中該組階段；
- *   critical/specific/general 不限階段，每組都會出現）並算 realEfficiency = baseEfficiency +
- *   conditionEfficiency（critical 類別的 5hr 生效條件尚未套用，見 docs/domain/arknights_tools_init.md
+ *   依階段分組，每組各自依現有規則篩選（所有類別統一用 targetPhase 通用判斷：0 代表
+ *   不限階段、每組都會出現，1/2/3 只在對應 phase 的那組出現；目前只有 skill 類別的
+ *   資料有非 0 的 targetPhase）並算 realEfficiency：`critical`／`specific` 兩類只有職業
+ *   命中 targetProfession 才計入 conditionEfficiency（未命中只剩 baseEfficiency，
+ *   critical 類別的 5hr 生效條件也尚未套用），`general`／`skill` 兩類是
+ *   baseEfficiency + conditionEfficiency 無條件相加（見 docs/domain/arknights_tools_init.md
  *   第 9 節），組內依此由高到低排序。
  * - 回應：{ data: SupportOperatorPhaseGroup[] }，依 phase 升冪排列。
  */
@@ -35,15 +40,15 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const { class: operatorProfession, fromSkill: rawFromSkill } = query;
 
-  let targetClass: ArknightsClass | undefined;
+  let targetClass: OperatorProfession | undefined;
   if (typeof operatorProfession === 'string' && operatorProfession.length > 0) {
-    if (!VALID_CLASSES.includes(operatorProfession as ArknightsClass)) {
+    if (!VALID_CLASSES.includes(operatorProfession as OperatorProfession)) {
       throw createError({
         statusCode: 400,
         statusMessage: `無效的 class 參數："${operatorProfession}"，須為 ${VALID_CLASSES.join('/')} 其中之一`,
       });
     }
-    targetClass = operatorProfession as ArknightsClass;
+    targetClass = operatorProfession as OperatorProfession;
   }
 
   let fromPhase: SkillPhase = 1;

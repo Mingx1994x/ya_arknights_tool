@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { ArknightsClass, SkillPhase, SupportOperator } from '#shared/types/support-operator'
+import type { OperatorProfession, SkillPhase, SupportOperator } from '#shared/types/support-operator'
 import type { MasteryStageCandidates } from '~/types/mastery'
 import { suggestStagePlans } from '~/utils/mastery'
 
 const props = defineProps<{
-  selectedProfession?: ArknightsClass
+  selectedProfession?: OperatorProfession
 }>()
 
 const startStage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })
@@ -28,7 +28,7 @@ const displayByPhase = computed(() => {
   const map = new Map<SkillPhase, StageDisplayCandidates>()
   for (const group of groups.value) {
     map.set(group.phase, {
-      criticalCandidate: group.candidates.find((c) => c.category === 'critical'),
+      criticalCandidate: group.criticalCandidates[0],
       otherCandidate:
         group.phase === 3 ? group.candidates[0] : group.candidates.find((c) => c.category !== 'critical'),
     })
@@ -93,12 +93,12 @@ const variantByPhase = computed(() => {
           v-for="group in groups"
           :key="group.phase"
           :title="STAGE_LABELS[group.phase]"
-          :required-work-hours="suggestionByPhase.get(group.phase)!.requiredWork"
+          :required-work-minutes="suggestionByPhase.get(group.phase)!.requiredWork"
           :is-halved="group.phase > startStage"
           :variant="variantByPhase.get(group.phase)"
           :companion-code-name="displayByPhase.get(group.phase)?.otherCandidate?.codeName"
           :companion-efficiency-percent="displayByPhase.get(group.phase)?.otherCandidate?.realEfficiency"
-          :companion-duration-hours="suggestionByPhase.get(group.phase)!.otherOperatorDurationHours ?? 0"
+          :companion-duration-minutes="suggestionByPhase.get(group.phase)!.operatorDurationMinutes ?? 0"
           :companion-category="displayByPhase.get(group.phase)?.otherCandidate?.category"
           :companion-memo="displayByPhase.get(group.phase)?.otherCandidate?.memo"
           :critical-code-name="displayByPhase.get(group.phase)?.criticalCandidate?.codeName"

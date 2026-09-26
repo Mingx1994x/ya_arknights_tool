@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { ArknightsClass } from '#shared/types/support-operator'
+import type { OperatorProfession } from '#shared/types/support-operator'
 
-const ARKNIGHTS_CLASSES: ArknightsClass[] = ['先鋒', '近衛', '重裝', '狙擊', '術師', '醫療', '輔助', '特種']
+const OPERATOR_PROFESSIONS: OperatorProfession[] = ['先鋒', '近衛', '重裝', '狙擊', '術師', '醫療', '輔助', '特種']
 
-const selectedProfession = defineModel<ArknightsClass | undefined>('selectedProfession')
+const selectedProfession = defineModel<OperatorProfession | undefined>('selectedProfession')
 
 function onProfessionChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value
-  selectedProfession.value = value ? (value as ArknightsClass) : undefined
+  selectedProfession.value = value ? (value as OperatorProfession) : undefined
 }
 </script>
 
@@ -22,7 +22,7 @@ function onProfessionChange(event: Event) {
       >
         <option value="" disabled>請選擇職業</option>
         <option
-          v-for="operatorClass in ARKNIGHTS_CLASSES"
+          v-for="operatorClass in OPERATOR_PROFESSIONS"
           :key="operatorClass"
           :value="operatorClass"
         >

@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import type { ArknightsClass, SkillPhase, SupportOperatorCategory } from '#shared/types/support-operator'
+import type { OperatorProfession, SkillPhase, SupportOperatorCategory } from '#shared/types/support-operator'
 import {
-  CRITICAL_DEFAULT_DURATION_HOURS,
-  HALVING_THRESHOLD_HOURS,
+  CRITICAL_DEFAULT_DURATION_MINUTES,
+  baseCompanionStage,
   calcDurationForWork,
+  criticalCompanionStage,
+  generalCompanionStage,
   getRequiredWork,
-  planCriticalCompanionStage,
+  normalizeCriticalDurationInput,
 } from '~/utils/mastery'
 
 const props = defineProps<{
-  selectedProfession?: ArknightsClass
+  selectedProfession?: OperatorProfession
 }>()
 
 const startStage = defineModel<SkillPhase>('selectedSkillPhase', { default: 1 })
@@ -25,7 +27,7 @@ const STAGE_LABELS: Record<SkillPhase, string> = { 1: '專精一', 2: '專精二
 
 /** groups[0] 必為目前 currentStage（API 以 currentStage.value 當 fromSkill，回傳陣列第一筆即該階段）。 */
 const currentStageCandidates = computed(() => groups.value[0]?.candidates ?? [])
-const criticalCandidates = computed(() => currentStageCandidates.value.filter((c) => c.category === 'critical'))
+const criticalCandidates = computed(() => groups.value[0]?.criticalCandidates ?? [])
 const otherCandidates = computed(() => currentStageCandidates.value.filter((c) => c.category !== 'critical'))
 
 type StageVariant = 'general' | 'base' | 'critical' | 'final'
@@ -42,8 +44,8 @@ function createDefaultPlanState(phase: SkillPhase): StagePlanState {
   return {
     variant: phase === 3 ? 'final' : 'general',
     criticalOperatorId: '',
-    criticalHours: Math.floor(CRITICAL_DEFAULT_DURATION_HOURS),
-    criticalMinutes: Math.round((CRITICAL_DEFAULT_DURATION_HOURS % 1) * 60),
+    criticalHours: Math.floor(CRITICAL_DEFAULT_DURATION_MINUTES / 60),
+    criticalMinutes: CRITICAL_DEFAULT_DURATION_MINUTES % 60,
     otherOperatorId: '',
   }
 }
@@ -71,11 +73,11 @@ type LockedStageResult = {
   /** 該階段的 requiredWork 是否已套用跨階段減半，對應 MasteryStageCard 的 isHalved。 */
   isHalved: boolean
   triggersNextHalving: boolean
-  critical?: { codeName: string; efficiencyPercent: number; durationHours: number; work: number }
+  critical?: { codeName: string; efficiencyPercent: number; durationMinutes: number; work: number }
   other?: {
     codeName: string
     efficiencyPercent: number
-    durationHours: number | null
+    durationMinutes: number | null
     category: SupportOperatorCategory
     memo?: string
   }
@@ -104,8 +106,15 @@ const lockedStageList = computed(() =>
     .reverse(),
 )
 
+/**
+ * 當前編輯階段是否已套用跨階段減半；起始階段宣告式視為未觸發（跟 AutoPlanTab 一致）。
+ * 在 `advanceToNextStage` 推進的當下直接寫入下一階段的值，讀取端不用反查 `lockedStages`。
+ */
+const isCurrentStageHalved = ref(false)
+
 function resetProgress() {
   currentStage.value = startStage.value
+  isCurrentStageHalved.value = false
   for (const phase of [1, 2, 3] as SkillPhase[]) {
     delete lockedStages[phase]
     Object.assign(planByStage[phase], createDefaultPlanState(phase))
@@ -113,12 +122,6 @@ function resetProgress() {
 }
 
 watch([startStage, professionRef], resetProgress)
-
-/** 這階段是否已經被上一階段的減半觸發套用；起始階段宣告式視為未觸發（跟 AutoPlanTab 一致）。 */
-const isCurrentStageHalved = computed(() => {
-  if (currentStage.value === startStage.value) return false
-  return lockedStages[(currentStage.value - 1) as SkillPhase]?.triggersNextHalving ?? false
-})
 
 /**
  * 該階段所需工作量：依「上一階段實際鎖定的 triggersNextHalving」決定，
@@ -133,54 +136,64 @@ const otherOperator = computed(() =>
   otherOperatorPool.value.find((c) => c.id === currentState.value.otherOperatorId),
 )
 
-const rawCriticalDurationHours = computed(
-  () => currentState.value.criticalHours + currentState.value.criticalMinutes / 60,
+/**
+ * 使用者輸入的「時」／「分」正規化結果：驗證規則統一收斂在 `normalizeCriticalDurationInput`（純函式，
+ * 附單元測試），避免「換算成分鐘」與「判斷輸入是否超出合理範圍」這兩處各自重複定義同一組規則、
+ * 之後改規則卻只改到一處的風險。
+ */
+const normalizedCriticalInput = computed(() =>
+  normalizeCriticalDurationInput(currentState.value.criticalHours, currentState.value.criticalMinutes),
 )
+const rawCriticalDurationMinutes = computed(() => normalizedCriticalInput.value.minutes)
+/** 跟 `isCriticalDurationClamped`（換算後超過本階段所需工時上限）是兩種不同原因，UI 顯示不同提示文字。 */
+const isCriticalInputInvalid = computed(() => normalizedCriticalInput.value.isInvalid)
 
 /** critical 幹員陪同時長上限：超過會讓 criticalWork 超過 RequiredWork(N)，正常遊戲數值不會需要用到，僅供輸入防呆。 */
-const maxCriticalDurationHours = computed(() => {
+const maxCriticalDurationMinutes = computed(() => {
   if (!criticalOperator.value) return null
   return calcDurationForWork(requiredWork.value, criticalOperator.value.realEfficiency)
 })
 
 const isCriticalDurationClamped = computed(
-  () => maxCriticalDurationHours.value !== null && rawCriticalDurationHours.value > maxCriticalDurationHours.value,
+  () => maxCriticalDurationMinutes.value !== null && rawCriticalDurationMinutes.value > maxCriticalDurationMinutes.value,
 )
 
-const effectiveCriticalDurationHours = computed(() =>
-  maxCriticalDurationHours.value !== null
-    ? Math.min(rawCriticalDurationHours.value, maxCriticalDurationHours.value)
-    : rawCriticalDurationHours.value,
+const effectiveCriticalDurationMinutes = computed(() =>
+  maxCriticalDurationMinutes.value !== null
+    ? Math.min(rawCriticalDurationMinutes.value, maxCriticalDurationMinutes.value)
+    : rawCriticalDurationMinutes.value,
 )
 
 /** variant 為 general：critical 幹員 + 另一位陪練幹員的組合結果。 */
 const criticalPlan = computed(() => {
   if (currentState.value.variant !== 'general' || !criticalOperator.value) return null
-  return planCriticalCompanionStage(
+  return generalCompanionStage(
     requiredWork.value,
-    effectiveCriticalDurationHours.value,
+    effectiveCriticalDurationMinutes.value,
     criticalOperator.value.realEfficiency,
     otherOperator.value?.realEfficiency ?? 0,
   )
 })
 
 /** variant 為 base／final：單一陪練幹員需要的陪同時長，直接反推、沒有 critical 分攤。 */
-const soloCompanionDurationHours = computed(() => {
+const soloCompanionDurationMinutes = computed(() => {
   if (currentState.value.variant !== 'base' && currentState.value.variant !== 'final') return null
   if (!otherOperator.value) return null
-  return calcDurationForWork(requiredWork.value, otherOperator.value.realEfficiency)
+  return baseCompanionStage(requiredWork.value, otherOperator.value.realEfficiency).operatorDurationMinutes
 })
 
 /** variant 為 critical：陪練幹員被移除，critical 幹員必須單獨補滿所需工時，直接反推、不透過輸入框調整。 */
-const soloCriticalDurationHours = computed(() => {
+const soloCriticalPlan = computed(() => {
   if (currentState.value.variant !== 'critical' || !criticalOperator.value) return null
-  return calcDurationForWork(requiredWork.value, criticalOperator.value.realEfficiency)
+  return criticalCompanionStage(requiredWork.value, criticalOperator.value.realEfficiency)
 })
 
+const soloCriticalDurationMinutes = computed(() => soloCriticalPlan.value?.operatorDurationMinutes ?? null)
+
 /** 陪練幹員實際顯示的建議陪同時長：依 variant 決定資料來源。 */
-const companionDurationHours = computed(() => {
-  if (currentState.value.variant === 'general') return criticalPlan.value?.otherOperatorDurationHours ?? null
-  return soloCompanionDurationHours.value
+const companionDurationMinutes = computed(() => {
+  if (currentState.value.variant === 'general') return criticalPlan.value?.otherOperatorDurationMinutes ?? null
+  return soloCompanionDurationMinutes.value
 })
 
 /**
@@ -189,22 +202,20 @@ const companionDurationHours = computed(() => {
  */
 const triggersNextHalving = computed(() => {
   if (currentState.value.variant === 'general') return criticalPlan.value?.triggersNextHalving ?? false
-  if (currentState.value.variant === 'critical') {
-    return soloCriticalDurationHours.value !== null && soloCriticalDurationHours.value >= HALVING_THRESHOLD_HOURS
-  }
+  if (currentState.value.variant === 'critical') return soloCriticalPlan.value?.triggersNextHalving ?? false
   return false
 })
 
 /** 目前階段是否已排出完整可用的排程。 */
 const isCurrentStagePlanComplete = computed(() => {
   if (currentState.value.variant === 'final' || currentState.value.variant === 'base') {
-    return soloCompanionDurationHours.value != null
+    return soloCompanionDurationMinutes.value != null
   }
   if (currentState.value.variant === 'critical') {
-    return soloCriticalDurationHours.value != null
+    return soloCriticalDurationMinutes.value != null
   }
   if (!criticalPlan.value) return false
-  return criticalPlan.value.otherOperatorDurationHours === null || !!otherOperator.value
+  return criticalPlan.value.otherOperatorDurationMinutes === null || !!otherOperator.value
 })
 
 const canAdvance = computed(() => currentStage.value < 3 && isCurrentStagePlanComplete.value)
@@ -214,15 +225,19 @@ function buildLockedCriticalInfo(): LockedStageResult['critical'] {
     return {
       codeName: criticalOperator.value.codeName,
       efficiencyPercent: criticalOperator.value.realEfficiency,
-      durationHours: effectiveCriticalDurationHours.value,
+      durationMinutes: effectiveCriticalDurationMinutes.value,
       work: criticalPlan.value.criticalWork,
     }
   }
-  if (currentState.value.variant === 'critical' && criticalOperator.value && soloCriticalDurationHours.value != null) {
+  if (
+    currentState.value.variant === 'critical' &&
+    criticalOperator.value &&
+    soloCriticalDurationMinutes.value != null
+  ) {
     return {
       codeName: criticalOperator.value.codeName,
       efficiencyPercent: criticalOperator.value.realEfficiency,
-      durationHours: soloCriticalDurationHours.value,
+      durationMinutes: soloCriticalDurationMinutes.value,
       work: requiredWork.value,
     }
   }
@@ -243,12 +258,14 @@ function advanceToNextStage() {
       ? {
           codeName: otherOperator.value.codeName,
           efficiencyPercent: otherOperator.value.realEfficiency,
-          durationHours: companionDurationHours.value,
+          durationMinutes: companionDurationMinutes.value,
           category: otherOperator.value.category,
           memo: otherOperator.value.memo,
         }
       : undefined,
   }
+  // 把剛完成階段的觸發結果帶到下一階段，讀取端不用反查 lockedStages。
+  isCurrentStageHalved.value = triggersNextHalving.value
   currentStage.value = (phase + 1) as SkillPhase
 }
 </script>
@@ -284,17 +301,18 @@ function advanceToNextStage() {
         v-model:critical-hours="currentState.criticalHours"
         v-model:critical-minutes="currentState.criticalMinutes"
         :title="STAGE_LABELS[currentStage]"
-        :required-work-hours="requiredWork"
+        :required-work-minutes="requiredWork"
         :is-halved="isCurrentStageHalved"
         :companion-candidates="otherOperatorPool"
         :critical-candidates="criticalCandidates"
-        :companion-duration-hours="companionDurationHours"
+        :companion-duration-minutes="companionDurationMinutes"
         :companion-category="otherOperator?.category"
         :companion-memo="otherOperator?.memo"
-        :critical-only-duration-hours="soloCriticalDurationHours"
+        :critical-only-duration-minutes="soloCriticalDurationMinutes"
         :triggers-next-halving="triggersNextHalving"
+        :is-critical-input-invalid="isCriticalInputInvalid"
         :is-critical-duration-clamped="isCriticalDurationClamped"
-        :effective-critical-duration-hours="effectiveCriticalDurationHours"
+        :effective-critical-duration-minutes="effectiveCriticalDurationMinutes"
         :can-advance="canAdvance"
         @advance="advanceToNextStage"
       />
@@ -303,17 +321,17 @@ function advanceToNextStage() {
         v-for="locked in lockedStageList"
         :key="locked.phase"
         :title="`${STAGE_LABELS[locked.phase]}（已完成）`"
-        :required-work-hours="locked.requiredWork"
+        :required-work-minutes="locked.requiredWork"
         :is-halved="locked.isHalved"
         :variant="getLockedVariant(locked)"
         :companion-code-name="locked.other?.codeName"
         :companion-efficiency-percent="locked.other?.efficiencyPercent"
-        :companion-duration-hours="locked.other?.durationHours ?? 0"
+        :companion-duration-minutes="locked.other?.durationMinutes ?? 0"
         :companion-category="locked.other?.category"
         :companion-memo="locked.other?.memo"
         :critical-code-name="locked.critical?.codeName"
         :critical-efficiency-percent="locked.critical?.efficiencyPercent"
-        :critical-duration-hours="locked.critical?.durationHours"
+        :critical-duration-minutes="locked.critical?.durationMinutes"
         :critical-memo="locked.triggersNextHalving ? '陪滿 5 小時，下一階段所需工作量已減半' : undefined"
       />
     </template>

@@ -4,27 +4,32 @@ import type { SupportOperator, SupportOperatorCategory } from '#shared/types/sup
 const props = withDefaults(
   defineProps<{
     title: string
-    requiredWorkHours: number
+    requiredWorkMinutes: number
     /** 該階段的所需工時是否已套用跨階段減半，跟 StageCard 的 isHalved 同一套規則 */
     isHalved?: boolean
     /** 陪練幹員候選清單（variant 為 final 時是整份未分類候選，其餘情境已排除 critical 類別，見父層 otherOperatorPool） */
     companionCandidates?: SupportOperator[]
     /** critical 幹員候選清單（Logos／艾麗妮） */
     criticalCandidates?: SupportOperator[]
-    /** 陪練幹員反推出的建議陪同時間；null 代表「不需要」（critical 已經補滿或整段還沒得算） */
-    companionDurationHours?: number | null
+    /** 陪練幹員反推出的建議陪同時間（分鐘）；null 代表「不需要」（critical 已經補滿或整段還沒得算） */
+    companionDurationMinutes?: number | null
     /** 陪練幹員類別，只有 `specific`（例如烏爾比安的宿舍搭配條件）才會顯示 companionMemo */
     companionCategory?: SupportOperatorCategory
     /** 陪練幹員備註（資料表 memo 欄位），只有 companionCategory 為 specific 時才顯示 */
     companionMemo?: string
-    /** critical 幹員被留成唯一區塊(variant === 'critical')時，反推出的直接計算結果 */
-    criticalOnlyDurationHours?: number | null
+    /** critical 幹員被留成唯一區塊(variant === 'critical')時，反推出的直接計算結果（分鐘） */
+    criticalOnlyDurationMinutes?: number | null
     /** critical 幹員陪同是否達到 5hr 門檻、觸發下一階段減半 */
     triggersNextHalving?: boolean
+    /**
+     * 使用者輸入的「時」／「分」字面值本身是否超出合理範圍（分不介於 0–59、時或分為負數），
+     * 跟 `isCriticalDurationClamped` 是不同原因，各自顯示對應的提示文字，兩者互斥（優先顯示這個）。
+     */
+    isCriticalInputInvalid?: boolean
     /** critical 幹員陪同時長是否已達上限（超過會讓 critical 自己補滿所需工時） */
     isCriticalDurationClamped?: boolean
-    /** 上限限制後實際套用的 critical 陪同時長，isCriticalDurationClamped 為 true 時用來顯示提示文字 */
-    effectiveCriticalDurationHours?: number
+    /** 上限限制後實際套用的 critical 陪同時長（分鐘），isCriticalInputInvalid／isCriticalDurationClamped 為 true 時用來顯示提示文字 */
+    effectiveCriticalDurationMinutes?: number
     /** 目前階段是否已經可以前往下一階段 */
     canAdvance?: boolean
   }>(),
@@ -32,11 +37,12 @@ const props = withDefaults(
     isHalved: false,
     companionCandidates: () => [],
     criticalCandidates: () => [],
-    companionDurationHours: null,
-    criticalOnlyDurationHours: null,
+    companionDurationMinutes: null,
+    criticalOnlyDurationMinutes: null,
     triggersNextHalving: false,
+    isCriticalInputInvalid: false,
     isCriticalDurationClamped: false,
-    effectiveCriticalDurationHours: 0,
+    effectiveCriticalDurationMinutes: 0,
     canAdvance: false,
   },
 )
@@ -91,7 +97,7 @@ const plusColSpanClass = computed(
     <div class="flex items-baseline justify-start gap-2">
       <h3 class="text-lg font-semibold">{{ title }}</h3>
       <p class="text-gray-500 text-sm">
-        階段所需工時：<span :class="isHalved ? 'text-green-600' : ''">{{ formatHoursAsHm(requiredWorkHours) }}</span>
+        階段所需工時：<span :class="isHalved ? 'text-green-600' : ''">{{ formatMinutesAsHm(requiredWorkMinutes) }}</span>
       </p>
     </div>
 
@@ -130,7 +136,7 @@ const plusColSpanClass = computed(
         </p>
         <p v-else class="font-bold">
           訓練時間：<span class="text-blue-600">
-            {{ companionDurationHours != null ? formatHoursAsHm(companionDurationHours) : '不需要' }}
+            {{ companionDurationMinutes != null ? formatMinutesAsHm(companionDurationMinutes) : '不需要' }}
           </span>
         </p>
       </div>
@@ -177,7 +183,7 @@ const plusColSpanClass = computed(
         <template v-else>
           <p v-if="isCriticalOnly" class="font-bold">
             訓練時間：<span class="text-blue-600">
-              {{ criticalOnlyDurationHours != null ? formatHoursAsHm(criticalOnlyDurationHours) : '不需要' }}
+              {{ criticalOnlyDurationMinutes != null ? formatMinutesAsHm(criticalOnlyDurationMinutes) : '不需要' }}
             </span>
           </p>
           <template v-else>
@@ -202,9 +208,13 @@ const plusColSpanClass = computed(
                 分
               </span>
             </label>
-            <p v-if="isCriticalDurationClamped" class="text-sm text-amber-600">
-              已達上限，超過會讓 critical 幹員單獨補滿所需工時，實際計算已自動改用
-              {{ formatHoursAsHm(effectiveCriticalDurationHours) }}。
+            <p v-if="isCriticalInputInvalid" class="text-sm text-amber-600">
+              輸入格式有誤，實際計算已自動改用
+              {{ formatMinutesAsHm(effectiveCriticalDurationMinutes) }}。
+            </p>
+            <p v-else-if="isCriticalDurationClamped" class="text-sm text-amber-600">
+              已達工時上限，實際計算已自動改用
+              {{ formatMinutesAsHm(effectiveCriticalDurationMinutes) }}。
             </p>
           </template>
         </template>

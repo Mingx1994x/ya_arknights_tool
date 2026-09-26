@@ -1,4 +1,4 @@
-export type ArknightsClass =
+export type OperatorProfession =
   | '先鋒'
   | '近衛'
   | '重裝'
@@ -15,7 +15,7 @@ export type ArknightsClass =
 //   skillScope: 1 | 2 | 3 | null;
 //   /** 效率加成百分比，例如 60 代表 +60% */
 //   efficiencyBonus: number;
-//   targetClasses: ArknightsClass[];
+//   targetClasses: OperatorProfession[];
 //   /** 是否為 Logos／艾麗妮，陪滿 5 小時可觸發下一階段減半（見領域文件第 4 節） */
 //   triggersHalfWork: boolean;
 //   /** 觸發減半所需的陪同分鐘數，僅 triggersHalfWork 為 true 時有值 */
@@ -39,7 +39,7 @@ export type SupportOperatorRecord = {
   id: string;
   codeName: string;
   category: SupportOperatorCategory;
-  targetProfession: ArknightsClass[];
+  targetProfession: OperatorProfession[];
   /** 此幹員資料適用的專精階段；0 代表不限階段 */
   targetPhase: 0 | SkillPhase;
   /** 效率加成百分比，例如 60 代表 +60% */
@@ -64,5 +64,8 @@ export type SupportOperator = SupportOperatorRecord & {
  */
 export type SupportOperatorPhaseGroup = {
   phase: SkillPhase;
+  /** 全部 4 類混合、依 realEfficiency 排序，critical 不從中排除 */
   candidates: SupportOperator[];
+  /** 僅 category === 'critical'，同樣依 realEfficiency 排序，方便直接取用 */
+  criticalCandidates: SupportOperator[];
 };

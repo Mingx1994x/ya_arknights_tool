@@ -1,5 +1,5 @@
 import type {
-  ArknightsClass,
+  OperatorProfession,
   SupportOperatorCategory,
   SupportOperatorRecord,
 } from '#shared/types/support-operator';
@@ -15,7 +15,7 @@ const CATEGORIES: SupportOperatorCategory[] = [
   'general',
   'skill',
 ];
-const PROFESSIONS: ArknightsClass[] = [
+const PROFESSIONS: OperatorProfession[] = [
   '近衛',
   '特種',
   '重裝',
@@ -62,10 +62,10 @@ function parseRow(row: string[], rowIndex: number): SupportOperatorRecord {
     .filter(Boolean);
   if (targetProfessionParts.length === 0) fail('targetProfession 為空');
   for (const part of targetProfessionParts) {
-    if (!PROFESSIONS.includes(part as ArknightsClass))
+    if (!PROFESSIONS.includes(part as OperatorProfession))
       fail(`targetProfession 含未知職業："${part}"`);
   }
-  const targetProfession = targetProfessionParts as ArknightsClass[];
+  const targetProfession = targetProfessionParts as OperatorProfession[];
 
   const targetPhaseNum = Number(rawTargetPhase);
   if (!PHASES.includes(targetPhaseNum as (typeof PHASES)[number]))

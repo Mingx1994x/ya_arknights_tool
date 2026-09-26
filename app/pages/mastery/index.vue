@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { ArknightsClass, SkillPhase } from '#shared/types/support-operator'
+import type { OperatorProfession, SkillPhase } from '#shared/types/support-operator'
 
-const selectedProfession = ref<ArknightsClass | undefined>(undefined)
+const selectedProfession = ref<OperatorProfession | undefined>(undefined)
 const selectedSkillPhase = ref<SkillPhase>(1)
 
 watch(selectedProfession, () => {
