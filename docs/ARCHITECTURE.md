@@ -17,7 +17,8 @@ ya-arknights-tools/
 │   ├── components/mastery/
 │   │   ├── ClassSkillSelect.vue      # <MasteryClassSkillSelect> 職業/技能編號選擇
 │   │   ├── AutoPlanTab.vue           # <MasteryAutoPlanTab> Tab A 自動建議排程
-│   │   └── ManualPlanTab.vue         # <MasteryManualPlanTab> Tab B 手動模擬排程
+│   │   ├── ManualPlanTab.vue         # <MasteryManualPlanTab> Tab B 手動模擬排程
+│   │   └── CompletionTimeCard.vue    # <MasteryCompletionTimeCard> 「現在時間／大約完成時間」快照區塊，兩個分頁共用
 │   ├── composables/
 │   │   └── useSupportOperators.ts    # 包裝 /api/support-operators 的 useFetch
 │   ├── types/
@@ -67,7 +68,8 @@ ya-arknights-tools/
 | `app/pages/mastery/index.vue` | 幹員專精試算頁面殼：共用「幹員職業／技能編號」選擇狀態，切換 Tab A（自動建議）／Tab B（手動模擬） |
 | `app/composables/useSupportOperators.ts` | 包裝 `GET /api/support-operators` 的 `useFetch`，依 `class`／`fromSkill` 查詢並回傳 `SupportOperatorPhaseGroup[]` |
 | `app/types/mastery.ts` | 僅前端使用的型別（見 [DEVELOPMENT.md 命名規則對照表](./DEVELOPMENT.md#命名規則對照表)「型別定義（僅前端使用）」一列）：`BaseCompanionPlan`／`CriticalOnlyCompanionPlan`／`CriticalCompanionPlan`／`NormalizedCriticalDurationInput`／`MasteryTopCandidate`／`MasteryStageCandidates`／`MasteryStageAutoPlan`，供 `app/utils/mastery.ts` 與 `AutoPlanTab.vue`／`ManualPlanTab.vue` 匯入 |
-| `app/utils/mastery.ts` | 專精工作量計算純函式：`getRequiredWorkBase`／`getRequiredWork`（跨階段減半）／`calcPhaseWork`／`calcDurationForWork`（反函式）／`normalizeCriticalDurationInput`（使用者輸入的「時」＋「分」正規化成分鐘並驗證是否超出合理範圍，供 `ManualPlanTab.vue` 呼叫，規則集中一處避免重複定義）／三種階段陪同策略（對應 `StageForm.vue`／`StageCard.vue` 的 `variant`，`final` 計算邏輯沿用 `base`，不需獨立函式）：`baseCompanionStage`（單一陪練幹員直接反推）／`criticalCompanionStage`（critical 幹員獨自補滿）／`generalCompanionStage`（critical 幹員＋另一位陪練幹員的組合反推）／`suggestStagePlans`（Tab A 用：把 `phases[0]`〔使用者選擇的起始階段〕視為未減半，之後階段依序觸發減半，內部呼叫 `baseCompanionStage`／`generalCompanionStage`）／`formatMinutesAsHm`（內部計算單位為分鐘，見領域文件第 2 節），對應 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 2–6 節 |
+| `app/utils/mastery.ts` | 專精工作量計算純函式：`getRequiredWorkBase`／`getRequiredWork`（跨階段減半）／`calcPhaseWork`／`calcDurationForWork`（反函式）／`normalizeCriticalDurationInput`（使用者輸入的「時」＋「分」正規化成分鐘並驗證是否超出合理範圍，供 `ManualPlanTab.vue` 呼叫，規則集中一處避免重複定義）／三種階段陪同策略（對應 `StageForm.vue`／`StageCard.vue` 的 `variant`，`final` 計算邏輯沿用 `base`，不需獨立函式）：`baseCompanionStage`（單一陪練幹員直接反推）／`criticalCompanionStage`（critical 幹員獨自補滿）／`generalCompanionStage`（critical 幹員＋另一位陪練幹員的組合反推）／`suggestStagePlans`（Tab A 用：把 `phases[0]`〔使用者選擇的起始階段〕視為未減半，之後階段依序觸發減半，內部呼叫 `baseCompanionStage`／`generalCompanionStage`）／`formatMinutesAsHm`（內部計算單位為分鐘，見領域文件第 2 節）／`formatClockTime`（Date → `M/D HH:mm`，供 `CompletionTimeCard.vue` 顯示現在時間／大約完成時間），對應 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 2–6 節 |
+| `app/components/mastery/CompletionTimeCard.vue` | `<MasteryCompletionTimeCard>`：接收 `remainingMinutes: number \| null`（剩餘所需陪同時間，分鐘；`null` 代表還不足以估算），內部用獨立的 `now`／`completionAt` 兩個 ref 分別存快照，兩者預設顯示 `--:--`。`remainingMinutes` 變成新的有意義數字時自動重算一次（`watch` 觸發）、變回 `null` 時 `completionAt` 一併清空；「重新整理」按鈕另外處理「排程沒變、現在時間過期」的情境，兩種情境都呼叫同一個 `refresh()`。Tab A／Tab B 各自計算好 `remainingMinutes` 傳入，見 `docs/FEATURES.md` |
 | `server/api/support-operators.get.ts` | 依 `class`／`fromSkill`（起始階段，缺省為 1）回傳 `{ data: SupportOperatorPhaseGroup[] }`（見下方 API 路由總覽表），內部呼叫 `support-operator-candidates.ts` 計算 |
 | `server/utils/google-sheets.ts` | 用 Service Account（`google-auth-library` 的 `JWT`）驗證後，呼叫 Sheets API v4 `values.get` 讀取指定分頁範圍，回傳原始字串二維陣列 |
 | `server/utils/support-operators.data.ts` | 把 `google-sheets.ts` 讀到的原始列資料解析/驗證成 `SupportOperatorRecord[]`，並用 Nitro `defineCachedFunction` 快取 5 分鐘 |
