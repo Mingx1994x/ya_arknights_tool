@@ -46,11 +46,25 @@ watch(
 
 <template>
   <section class="p-4 border border-gray-200 rounded-lg flex flex-wrap items-center justify-between gap-4">
-    <div class="flex flex-wrap gap-6">
+    <div class="flex flex-wrap items-center gap-4">
       <div>
         <p class="text-gray-500 text-sm">現在時間</p>
         <p class="font-semibold">{{ now ? formatClockTime(now) : '--:--' }}</p>
       </div>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="w-5 h-5 text-gray-300 shrink-0"
+        aria-hidden="true"
+      >
+        <line x1="5" y1="12" x2="19" y2="12" />
+        <polyline points="12 5 19 12 12 19" />
+      </svg>
       <div>
         <p class="text-gray-500 text-sm">大約完成時間</p>
         <p class="font-semibold text-blue-600">{{ completionAt ? formatClockTime(completionAt) : '--:--' }}</p>
@@ -58,10 +72,26 @@ watch(
     </div>
     <button
       type="button"
-      class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+      class="p-1.5 text-gray-500 border border-gray-300 rounded hover:bg-gray-50"
+      aria-label="重新整理"
+      title="重新整理"
       @click="refresh"
     >
-      重新整理
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="w-4 h-4"
+        aria-hidden="true"
+      >
+        <polyline points="23 4 23 10 17 10" />
+        <polyline points="1 20 1 14 7 14" />
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+      </svg>
     </button>
   </section>
 </template>
