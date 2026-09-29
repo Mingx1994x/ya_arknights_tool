@@ -7,6 +7,7 @@ import {
   calcDurationForWork,
   calcPhaseWork,
   criticalCompanionStage,
+  formatClockTime,
   formatMinutesAsHm,
   generalCompanionStage,
   getRequiredWork,
@@ -242,5 +243,20 @@ describe('formatMinutesAsHm', () => {
 
   it('critical 幹員預設陪同時長（5hr 另加 5 分鐘操作緩衝）', () => {
     expect(formatMinutesAsHm(CRITICAL_DEFAULT_DURATION_MINUTES)).toBe('5 小時 5 分')
+  })
+})
+
+describe('formatClockTime', () => {
+  it('個位數的月／日／時／分都需要補零（時分補零，月日不補零）', () => {
+    expect(formatClockTime(new Date(2026, 8, 6, 5, 9))).toBe('9/6 05:09')
+  })
+
+  it('一般時刻不需要補零', () => {
+    expect(formatClockTime(new Date(2026, 11, 25, 14, 32))).toBe('12/25 14:32')
+  })
+
+  it('跨日期（例如陪同時長超過午夜）仍正確顯示隔天日期', () => {
+    expect(formatClockTime(new Date(2026, 8, 26, 23, 30))).toBe('9/26 23:30')
+    expect(formatClockTime(new Date(2026, 8, 27, 0, 15))).toBe('9/27 00:15')
   })
 })

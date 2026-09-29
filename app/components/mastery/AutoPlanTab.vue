@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { OperatorProfession, SkillPhase, SupportOperator } from '#shared/types/support-operator'
 import type { MasteryStageCandidates } from '~/types/mastery'
-import { suggestStagePlans } from '~/utils/mastery'
+import { CRITICAL_DEFAULT_DURATION_MINUTES, suggestStagePlans } from '~/utils/mastery'
 
 const props = defineProps<{
   selectedProfession?: OperatorProfession
@@ -53,6 +53,22 @@ const suggestions = computed(() =>
 const suggestionByPhase = computed(() => new Map(suggestions.value.map((s) => [s.phase, s])))
 
 /**
+ * 整份建議排程（起始階段 → 專精三）剩餘所需的陪同時間：每階段的 critical 幹員陪同時間
+ * （`criticalWork` 非 null 代表本階段有安排，固定陪同 `CRITICAL_DEFAULT_DURATION_MINUTES`）
+ * 加上陪練幹員反推出的陪同時間相加，供 `MasteryCompletionTimeCard` 估算大約完成時間。
+ * 尚未選擇職業、查詢中或查詢失敗時回傳 `null`——`GET /api/support-operators` 的 `class`
+ * 參數是選填的，沒帶職業時仍會回傳「未篩選職業」的候選資料，若不特別排除，會在使用者
+ * 還沒做任何選擇時就算出一個看似正常、實際上沒有意義的完成時間。
+ */
+const remainingMinutes = computed(() => {
+  if (!props.selectedProfession || pending.value || error.value) return null
+  return suggestions.value.reduce((total, suggestion) => {
+    const criticalMinutes = suggestion.criticalWork != null ? CRITICAL_DEFAULT_DURATION_MINUTES : 0
+    return total + criticalMinutes + (suggestion.operatorDurationMinutes ?? 0)
+  }, 0)
+})
+
+/**
  * 各階段 `MasteryStageCard` 要用的顯示形式：專精三沒有下一階段可減半、不安排 critical 幹員，用 `base`；
  * 其餘階段目前固定用 `general`，`critical`（只顯示 critical 欄位）先保留給之後的情境使用，
  * 這裡先集中管理，之後有需要時只需調整這裡的判斷。
@@ -68,17 +84,21 @@ const variantByPhase = computed(() => {
 
 <template>
   <div class="flex flex-col gap-4">
-    <label class="flex flex-col gap-1 text-sm max-w-40">
-      <span class="font-semibold">起始階段</span>
-      <select
-        v-model.number="startStage"
-        class="px-2.5 py-1.5 border border-gray-300 rounded"
-      >
-        <option :value="1">專精一</option>
-        <option :value="2">專精二</option>
-        <option :value="3">專精三</option>
-      </select>
-    </label>
+    <div class="flex items-center justify-between gap-4">
+      <label class="flex flex-col gap-1 text-sm max-w-40">
+        <span class="font-semibold">起始階段</span>
+        <select
+          v-model.number="startStage"
+          class="px-2.5 py-1.5 border border-gray-300 rounded"
+        >
+          <option :value="1">專精一</option>
+          <option :value="2">專精二</option>
+          <option :value="3">專精三</option>
+        </select>
+      </label>
+
+      <MasteryCompletionTimeCard :remaining-minutes="remainingMinutes" />
+    </div>
 
     <p v-if="!props.selectedProfession" class="text-gray-500">
       請先選擇幹員職業以取得建議。

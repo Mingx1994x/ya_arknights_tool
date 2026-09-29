@@ -204,3 +204,12 @@ export function formatMinutesAsHm(totalMinutesRaw: number): string {
   const minutes = totalMinutes % 60
   return `${wholeHours} 小時 ${minutes} 分`
 }
+
+/**
+ * Date → `M/D HH:mm` 顯示字串，供「現在時間」／「大約完成時間」快照區塊使用。
+ * 不含年份：這個功能只關心短期內（幾小時到幾天）的排程規劃，不考慮跨年份顯示。
+ */
+export function formatClockTime(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getMonth() + 1}/${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}

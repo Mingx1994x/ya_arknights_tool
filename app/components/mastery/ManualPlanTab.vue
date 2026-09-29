@@ -268,21 +268,58 @@ function advanceToNextStage() {
   isCurrentStageHalved.value = triggersNextHalving.value
   currentStage.value = (phase + 1) as SkillPhase
 }
+
+/**
+ * 專精三沒有「前往下一階段」可以觸發鎖定（`canAdvance` 要求 `currentStage.value < 3`），
+ * 一般階段那套「按下前往下一階段才算數」的規則在專精三永遠不會發生，若不特別處理，
+ * 專精三的陪同時間會永遠被排除在 `remainingMinutes` 之外。專精三的 `variant` 固定是 `final`，
+ * 只有一個陪練幹員下拉選單可選、沒有連續輸入的欄位（不像 general 的 critical 時／分輸入框），
+ * 所以用「本階段是否已排出完整排程」（`isCurrentStagePlanComplete`）當作等同鎖定的訊號是安全的：
+ * 選定陪練幹員後時長就固定下來，不會有「打字打到一半被算進去」的問題。
+ */
+const currentPhaseDurationIfFinal = computed(() =>
+  currentStage.value === 3 && isCurrentStagePlanComplete.value ? (soloCompanionDurationMinutes.value ?? 0) : 0,
+)
+
+/**
+ * 剩餘所需的陪同時間：加總「已鎖定階段」的實際陪同時間，再加上專精三（若已排出完整排程，見上）；
+ * 專精一、二正在編輯、尚未鎖定的階段不計入——目前階段還在調整（換陪練幹員、改 critical 陪同時長）時
+ * 數字本來就會一直變動，若也算進去，`MasteryCompletionTimeCard` 會跟著每次輸入變動自動重算，
+ * 這正是當初改成「快照＋手動重新整理」設計想避免的情境；改成只看已鎖定階段後，
+ * 「大約完成時間」只在按下「前往下一階段」真正鎖定一個階段（或專精三排完）時才會自動更新一次。
+ * 尚未選擇職業、查詢中、查詢失敗，或還沒有任何可計入的階段時回傳 `null`（顯示 `--:--`）——
+ * 職業選了但什麼都還沒鎖定時，總和會是 0，等同「現在＝完成」，容易誤導成「已經規劃完成」，
+ * 所以「還沒有任何可計入的階段」也視為還沒有可估算的資料。
+ */
+const remainingMinutes = computed(() => {
+  if (!props.selectedProfession || pending.value || error.value) return null
+  if (lockedStageList.value.length === 0 && currentPhaseDurationIfFinal.value === 0) return null
+  return (
+    lockedStageList.value.reduce(
+      (total, locked) => total + (locked.critical?.durationMinutes ?? 0) + (locked.other?.durationMinutes ?? 0),
+      0,
+    ) + currentPhaseDurationIfFinal.value
+  )
+})
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
-    <label class="flex flex-col gap-1 text-sm max-w-40">
-      <span class="font-semibold">起始階段</span>
-      <select
-        v-model.number="startStage"
-        class="px-2.5 py-1.5 border border-gray-300 rounded"
-      >
-        <option :value="1">專精一</option>
-        <option :value="2">專精二</option>
-        <option :value="3">專精三</option>
-      </select>
-    </label>
+    <div class="flex items-center justify-between gap-4">
+      <label class="flex flex-col gap-1 text-sm max-w-40">
+        <span class="font-semibold">起始階段</span>
+        <select
+          v-model.number="startStage"
+          class="px-2.5 py-1.5 border border-gray-300 rounded"
+        >
+          <option :value="1">專精一</option>
+          <option :value="2">專精二</option>
+          <option :value="3">專精三</option>
+        </select>
+      </label>
+
+      <MasteryCompletionTimeCard :remaining-minutes="remainingMinutes" />
+    </div>
 
     <p v-if="!props.selectedProfession" class="text-gray-500">
       請先選擇幹員職業以取得候選幹員清單。

@@ -17,7 +17,8 @@ ya-arknights-tools/
 │   ├── components/mastery/
 │   │   ├── ClassSkillSelect.vue      # <MasteryClassSkillSelect> 職業/技能編號選擇
 │   │   ├── AutoPlanTab.vue           # <MasteryAutoPlanTab> Tab A 自動建議排程
-│   │   └── ManualPlanTab.vue         # <MasteryManualPlanTab> Tab B 手動模擬排程
+│   │   ├── ManualPlanTab.vue         # <MasteryManualPlanTab> Tab B 手動模擬排程
+│   │   └── CompletionTimeCard.vue    # <MasteryCompletionTimeCard> 「現在時間／大約完成時間」快照區塊，兩個分頁共用
 │   ├── composables/
 │   │   └── useSupportOperators.ts    # 包裝 /api/support-operators 的 useFetch
 │   ├── types/
@@ -33,7 +34,7 @@ ya-arknights-tools/
 │       └── support-operator-candidates.ts # 依職業／起始階段算「起始階段→專精三」分組候選幹員；critical／specific 不受職業篩選限制、另附 criticalCandidates 便利欄位（server-only，Nitro 自動匯入）
 ├── shared/
 │   └── types/
-│       └── support-operator.ts       # SupportOperatorRecord（現用）與 SupportOperator（舊版，待清理）等型別，client/server 共用
+│       └── support-operator.ts       # SupportOperatorRecord／SupportOperator 等型別，client/server 共用
 ├── public/
 │   ├── favicon.ico          # 網站 favicon
 │   └── robots.txt           # 允許所有 User-Agent 爬取（見下方內容）
@@ -67,12 +68,13 @@ ya-arknights-tools/
 | `app/pages/mastery/index.vue` | 幹員專精試算頁面殼：共用「幹員職業／技能編號」選擇狀態，切換 Tab A（自動建議）／Tab B（手動模擬） |
 | `app/composables/useSupportOperators.ts` | 包裝 `GET /api/support-operators` 的 `useFetch`，依 `class`／`fromSkill` 查詢並回傳 `SupportOperatorPhaseGroup[]` |
 | `app/types/mastery.ts` | 僅前端使用的型別（見 [DEVELOPMENT.md 命名規則對照表](./DEVELOPMENT.md#命名規則對照表)「型別定義（僅前端使用）」一列）：`BaseCompanionPlan`／`CriticalOnlyCompanionPlan`／`CriticalCompanionPlan`／`NormalizedCriticalDurationInput`／`MasteryTopCandidate`／`MasteryStageCandidates`／`MasteryStageAutoPlan`，供 `app/utils/mastery.ts` 與 `AutoPlanTab.vue`／`ManualPlanTab.vue` 匯入 |
-| `app/utils/mastery.ts` | 專精工作量計算純函式：`getRequiredWorkBase`／`getRequiredWork`（跨階段減半）／`calcPhaseWork`／`calcDurationForWork`（反函式）／`normalizeCriticalDurationInput`（使用者輸入的「時」＋「分」正規化成分鐘並驗證是否超出合理範圍，供 `ManualPlanTab.vue` 呼叫，規則集中一處避免重複定義）／三種階段陪同策略（對應 `StageForm.vue`／`StageCard.vue` 的 `variant`，`final` 計算邏輯沿用 `base`，不需獨立函式）：`baseCompanionStage`（單一陪練幹員直接反推）／`criticalCompanionStage`（critical 幹員獨自補滿）／`generalCompanionStage`（critical 幹員＋另一位陪練幹員的組合反推）／`suggestStagePlans`（Tab A 用：把 `phases[0]`〔使用者選擇的起始階段〕視為未減半，之後階段依序觸發減半，內部呼叫 `baseCompanionStage`／`generalCompanionStage`）／`formatMinutesAsHm`（內部計算單位為分鐘，見領域文件第 2 節），對應 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 2–6 節 |
+| `app/utils/mastery.ts` | 專精工作量計算純函式：`getRequiredWorkBase`／`getRequiredWork`（跨階段減半）／`calcPhaseWork`／`calcDurationForWork`（反函式）／`normalizeCriticalDurationInput`（使用者輸入的「時」＋「分」正規化成分鐘並驗證是否超出合理範圍，供 `ManualPlanTab.vue` 呼叫，規則集中一處避免重複定義）／三種階段陪同策略（對應 `StageForm.vue`／`StageCard.vue` 的 `variant`，`final` 計算邏輯沿用 `base`，不需獨立函式）：`baseCompanionStage`（單一陪練幹員直接反推）／`criticalCompanionStage`（critical 幹員獨自補滿）／`generalCompanionStage`（critical 幹員＋另一位陪練幹員的組合反推）／`suggestStagePlans`（Tab A 用：把 `phases[0]`〔使用者選擇的起始階段〕視為未減半，之後階段依序觸發減半，內部呼叫 `baseCompanionStage`／`generalCompanionStage`）／`formatMinutesAsHm`（內部計算單位為分鐘，見領域文件第 2 節）／`formatClockTime`（Date → `M/D HH:mm`，供 `CompletionTimeCard.vue` 顯示現在時間／大約完成時間），對應 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 2–6 節 |
+| `app/components/mastery/CompletionTimeCard.vue` | `<MasteryCompletionTimeCard>`：接收 `remainingMinutes: number \| null`（剩餘所需陪同時間，分鐘；`null` 代表還不足以估算），內部用獨立的 `now`／`completionAt` 兩個 ref 分別存快照，兩者預設顯示 `--:--`。`remainingMinutes` 變成新的有意義數字時自動重算一次（`watch` 觸發）、變回 `null` 時 `completionAt` 一併清空；「重新整理」按鈕另外處理「排程沒變、現在時間過期」的情境，兩種情境都呼叫同一個 `refresh()`。Tab A／Tab B 各自計算好 `remainingMinutes` 傳入，見 `docs/FEATURES.md` |
 | `server/api/support-operators.get.ts` | 依 `class`／`fromSkill`（起始階段，缺省為 1）回傳 `{ data: SupportOperatorPhaseGroup[] }`（見下方 API 路由總覽表），內部呼叫 `support-operator-candidates.ts` 計算 |
 | `server/utils/google-sheets.ts` | 用 Service Account（`google-auth-library` 的 `JWT`）驗證後，呼叫 Sheets API v4 `values.get` 讀取指定分頁範圍，回傳原始字串二維陣列 |
 | `server/utils/support-operators.data.ts` | 把 `google-sheets.ts` 讀到的原始列資料解析/驗證成 `SupportOperatorRecord[]`，並用 Nitro `defineCachedFunction` 快取 5 分鐘 |
 | `server/utils/support-operator-candidates.ts` | `matchesTargetProfession()`：共用輔助函式，判斷幹員 `targetProfession` 是否命中指定職業（未指定職業視為不命中），供職業篩選與 `conditionEfficiency` 是否計入共用；`resolveConditionalEfficiency()`：職業命中才計入 `conditionEfficiency`，未命中只剩 `baseEfficiency`（內部呼叫 `matchesTargetProfession()`）；`resolveCriticalCandidates()`：篩出 `category === 'critical'` 幹員（不受職業篩選限制）套用上述函式算 `realEfficiency`；`resolveCandidatesByPhase()`：`specific` 類別同樣不受職業篩選限制、也套用 `resolveConditionalEfficiency()`，`general`／`skill` 依職業篩選（篩選判斷也共用 `matchesTargetProfession()`）、`realEfficiency` 無條件相加（能出現在候選名單裡即代表職業已命中或未指定職業），所有類別的階段資格統一用 `targetPhase` 通用判斷（`0` 不限階段），跟 `resolveCriticalCandidates()` 的結果合併、依階段分組並排序，回傳 `SupportOperatorPhaseGroup[]`（每組除 `candidates` 外，另附 `criticalCandidates` 便利欄位＝`candidates` 篩出 critical 類別的子集，供前端直接取用不必重新篩選） |
-| `shared/types/support-operator.ts` | `SupportOperatorRecord`／`OperatorProfession`／`SupportOperatorCategory`（`critical`/`specific`/`general`/`skill`）／`SupportOperator`（`SupportOperatorRecord` 附加 `realEfficiency`）／`SupportOperatorPhaseGroup` 為目前實際使用的型別，`app/` 與 `server/` 皆可透過 `#shared/...` 路徑 auto-import（對應 `tsconfig.shared.json`）；檔案內另有一段註解掉的舊版 `SupportOperator` mock 介面定義，純屬歷史紀錄、未參與編譯 |
+| `shared/types/support-operator.ts` | `SupportOperatorRecord`／`OperatorProfession`／`SupportOperatorCategory`（`critical`/`specific`/`general`/`skill`）／`SupportOperator`（`SupportOperatorRecord` 附加 `realEfficiency`）／`SupportOperatorPhaseGroup` 為目前實際使用的型別，`app/` 與 `server/` 皆可透過 `#shared/...` 路徑 auto-import（對應 `tsconfig.shared.json`） |
 | `nuxt.config.ts` | `compatibilityDate: '2025-07-15'` 鎖定 Nuxt 相容行為版本；`devtools.enabled: true` 開啟 Nuxt DevTools；`runtimeConfig.googleSheets`（server-only）存放 Google Sheets Service Account 憑證 |
 | `tsconfig.json` | 本身不含直接的 `compilerOptions`，而是透過 `references` 指向 `pnpm install`（`postinstall` → `nuxt prepare`）產生於 `.nuxt/` 的四個 project reference tsconfig（`tsconfig.app.json` / `tsconfig.server.json` / `tsconfig.shared.json` / `tsconfig.node.json`）。**這代表首次 clone 專案後必須先執行 `pnpm install` 才會有完整型別檢查**，否則編輯器可能報找不到參照的 tsconfig |
 | `public/robots.txt` | `Disallow:` 留空即允許所有頁面被索引 |

@@ -8,21 +8,6 @@ export type OperatorProfession =
   | '輔助'
   | '特種';
 
-// export interface SupportOperator {
-//   id: string;
-//   name: string;
-//   category: SupportOperatorCategory;
-//   skillScope: 1 | 2 | 3 | null;
-//   /** 效率加成百分比，例如 60 代表 +60% */
-//   efficiencyBonus: number;
-//   targetClasses: OperatorProfession[];
-//   /** 是否為 Logos／艾麗妮，陪滿 5 小時可觸發下一階段減半（見領域文件第 4 節） */
-//   triggersHalfWork: boolean;
-//   /** 觸發減半所需的陪同分鐘數，僅 triggersHalfWork 為 true 時有值 */
-//   requiredAccompanyMinutes?: number;
-//   note?: string;
-// }
-
 export type SupportOperatorCategory =
   | 'critical'
   | 'specific'
