@@ -9,15 +9,24 @@
 ```
 ya-arknights-tools/
 ├── app/
-│   ├── app.vue                       # Nuxt 4 應用程式進入點，render <NuxtPage />
+│   ├── app.vue                       # Nuxt 4 應用程式進入點，render <NuxtLayout><NuxtPage /></NuxtLayout>
+│   ├── assets/css/
+│   │   └── main.css                  # Tailwind v4 進入點 + 賽博龐克設計系統 @theme／@utility／@layer base，見 docs/design/README.md
+│   ├── layouts/
+│   │   └── default.vue               # 全站外殼：HUD topbar（品牌／ロドス島／連線狀態）與 footer
 │   ├── pages/
-│   │   ├── index.vue                 # 首頁（目前僅 render <NuxtWelcome /> 佔位）
+│   │   ├── index.vue                 # 首頁：工具索引，連往 /mastery
 │   │   └── mastery/
 │   │       └── index.vue             # /mastery，幹員專精試算頁面殼
+│   ├── components/ui/
+│   │   ├── HudPanel.vue              # <UiHudPanel> 切角面板外殼（tone 邊框語意色／glow），三個 mastery 卡片共用
+│   │   └── HudTag.vue                # <UiHudTag> HUD 區塊標籤，例如 [ MODULE_01 / 幹員職業 ]
 │   ├── components/mastery/
-│   │   ├── ClassSkillSelect.vue      # <MasteryClassSkillSelect> 職業/技能編號選擇
+│   │   ├── ProfessionSelect.vue      # <MasteryProfessionSelect> 幹員職業選擇（8 個切角磚，radiogroup + 方向鍵導覽）
 │   │   ├── AutoPlanTab.vue           # <MasteryAutoPlanTab> Tab A 自動建議排程
 │   │   ├── ManualPlanTab.vue         # <MasteryManualPlanTab> Tab B 手動模擬排程
+│   │   ├── StageCard.vue             # <MasteryStageCard> 唯讀階段摘要卡
+│   │   ├── StageForm.vue             # <MasteryStageForm> 可編輯階段表單卡
 │   │   └── CompletionTimeCard.vue    # <MasteryCompletionTimeCard> 「現在時間／大約完成時間」快照區塊，兩個分頁共用
 │   ├── composables/
 │   │   └── useSupportOperators.ts    # 包裝 /api/support-operators 的 useFetch
@@ -49,6 +58,9 @@ ya-arknights-tools/
 │   ├── FEATURES.md           # 功能清單
 │   ├── TESTING.md            # 測試規範
 │   ├── CHANGELOG.md          # 更新日誌
+│   ├── design/
+│   │   └── README.md                 # 設計規範：design token、字型字級、切角規則、元件規範
+│   │                                 # （Pencil 設計稿 *.pen 為加密二進位格式，不進版控，見 .gitignore）
 │   ├── domain/
 │   │   └── arknights_tools_init.md   # 專精工作量計算領域規則（既有文件）
 │   └── plans/
@@ -64,8 +76,13 @@ ya-arknights-tools/
 
 | 路徑 | 用途 |
 | --- | --- |
-| `app/app.vue` | Vue root component，render `<NuxtRouteAnnouncer />`（無障礙路由播報）與 `<NuxtPage />`（依 `app/pages/` 路由渲染對應頁面） |
+| `app/app.vue` | Vue root component，render `<NuxtRouteAnnouncer />`（無障礙路由播報）與包在 `<NuxtLayout>` 內的 `<NuxtPage />`。**有 `app.vue` 時 `app/layouts/` 不會自動生效，必須顯式包 `<NuxtLayout>`** |
+| `app/assets/css/main.css` | Tailwind v4 進入點，另含整套設計系統：`@theme`（色彩／字型／glow token，自動產出 `bg-surface-1`、`text-data` 等 utility）、`@utility`（`notch-lg`／`notch-sm` 切角、`hud-focus`、`hud-field`／`hud-select`）、`@layer base`（底色、背景網格、原生 select 深色化、`prefers-reduced-motion`）。token 語意見 [docs/design/README.md](./design/README.md) |
+| `app/layouts/default.vue` | 全站外殼：HUD topbar（品牌標記／`ロドス島`／連線狀態燈）與 footer，容器寬度與頁面內容同為 `max-w-[64rem]` |
+| `app/components/ui/HudPanel.vue` | `<UiHudPanel>`：切角面板外殼，`tone` 控制邊框語意色（`default`／`ok`／`data`）、`glow` 決定是否發光。**glow 掛在外層 wrapper 而非切角元素本身**——CSS 算繪順序是 filter → clip-path，同一元素上的陰影會連同切角一起被裁掉 |
+| `app/components/ui/HudTag.vue` | `<UiHudTag>`：HUD 區塊標籤（`[ MODULE_01 / 幹員職業 ]`），括號為 `aria-hidden` 裝飾 |
 | `app/pages/mastery/index.vue` | 幹員專精試算頁面殼：共用「幹員職業／技能編號」選擇狀態，切換 Tab A（自動建議）／Tab B（手動模擬） |
+| `app/components/mastery/ProfessionSelect.vue` | `<MasteryProfessionSelect>`：8 個職業切角磚取代原生 `<select>`，`role="radiogroup"` + roving tabindex（整組在 Tab 序列只佔一站，組內用方向鍵移動並同步變更選取） |
 | `app/composables/useSupportOperators.ts` | 包裝 `GET /api/support-operators` 的 `useFetch`，依 `class`／`fromSkill` 查詢並回傳 `SupportOperatorPhaseGroup[]` |
 | `app/types/mastery.ts` | 僅前端使用的型別（見 [DEVELOPMENT.md 命名規則對照表](./DEVELOPMENT.md#命名規則對照表)「型別定義（僅前端使用）」一列）：`BaseCompanionPlan`／`CriticalOnlyCompanionPlan`／`CriticalCompanionPlan`／`NormalizedCriticalDurationInput`／`MasteryTopCandidate`／`MasteryStageCandidates`／`MasteryStageAutoPlan`，供 `app/utils/mastery.ts` 與 `AutoPlanTab.vue`／`ManualPlanTab.vue` 匯入 |
 | `app/utils/mastery.ts` | 專精工作量計算純函式：`getRequiredWorkBase`／`getRequiredWork`（跨階段減半）／`calcPhaseWork`／`calcDurationForWork`（反函式）／`normalizeCriticalDurationInput`（使用者輸入的「時」＋「分」正規化成分鐘並驗證是否超出合理範圍，供 `ManualPlanTab.vue` 呼叫，規則集中一處避免重複定義）／三種階段陪同策略（對應 `StageForm.vue`／`StageCard.vue` 的 `variant`，`final` 計算邏輯沿用 `base`，不需獨立函式）：`baseCompanionStage`（單一陪練幹員直接反推）／`criticalCompanionStage`（critical 幹員獨自補滿）／`generalCompanionStage`（critical 幹員＋另一位陪練幹員的組合反推）／`suggestStagePlans`（Tab A 用：把 `phases[0]`〔使用者選擇的起始階段〕視為未減半，之後階段依序觸發減半，內部呼叫 `baseCompanionStage`／`generalCompanionStage`）／`formatMinutesAsHm`（內部計算單位為分鐘，見領域文件第 2 節）／`formatClockTime`（Date → `M/D HH:mm`，供 `CompletionTimeCard.vue` 顯示現在時間／大約完成時間），對應 [docs/domain/arknights_tools_init.md](./domain/arknights_tools_init.md) 第 2–6 節 |
@@ -82,8 +99,8 @@ ya-arknights-tools/
 ## 啟動流程
 
 1. `pnpm install` → 觸發 `postinstall` script 執行 `nuxt prepare`，產生 `.nuxt/`（型別、自動匯入清單等，已於 `.gitignore` 排除）。
-2. `pnpm dev` → 執行 `nuxt dev`，啟動 Nitro 開發伺服器並監看檔案變更；Nuxt 依 [目錄慣例](https://nuxt.com/docs/guide/directory-structure) 掃描 `app/` 底下的 `pages/`、`layouts/`、`components/` 等目錄（目前皆不存在，故網站只會渲染 `app/app.vue` 本身)。
-3. 瀏覽器開啟 `http://localhost:3000` 即看到 Nuxt 預設歡迎畫面。
+2. `pnpm dev` → 執行 `nuxt dev`，啟動 Nitro 開發伺服器並監看檔案變更；Nuxt 依 [目錄慣例](https://nuxt.com/docs/guide/directory-structure) 掃描 `app/` 底下的 `pages/`、`layouts/`、`components/` 等目錄。
+3. 瀏覽器開啟 `http://localhost:3000` 看到首頁（工具索引），`/mastery` 為幹員專精試算。
 
 ## API 路由總覽表
 

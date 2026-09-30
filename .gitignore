@@ -27,5 +27,9 @@ logs
 docs/plans/draft/
 docs/plans/archive/
 
+# Pencil 設計稿（加密二進位格式，無法 diff、無法 code review，僅本機保存）
+# 設計規範以 docs/design/README.md 為準
+*.pen
+
 # Claude Code local config/skills
 .claude/
