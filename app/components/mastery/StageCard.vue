@@ -5,6 +5,8 @@ import { CRITICAL_DEFAULT_DURATION_MINUTES } from '~/utils/mastery'
 const props = withDefaults(
   defineProps<{
     title: string
+    /** 專精階段序號（1／2／3），顯示成 01／02／03 的 HUD 序號標。專精階段是真正的序列，才用編號 */
+    phase?: number
     requiredWorkMinutes: number
     /** 該階段的所需工作量是否已套用跨階段減半（上一階段陪滿 5 小時觸發，見領域文件第 4 節） */
     isHalved?: boolean
@@ -66,12 +68,28 @@ const originalDurationDeltaPercent = computed(() => {
 </script>
 
 <template>
-  <section :class="isHalved ? 'border-green-600' : 'border-gray-200'" class="p-4 border rounded-lg @container">
-    <div class="flex items-baseline justify-start gap-2 mb-2">
-      <h3 class="text-lg font-semibold">{{ title }}</h3>
-      <p class="text-gray-500 text-sm">
-        階段所需工時：<span :class="isHalved ? 'text-green-600' : ''">{{ formatMinutesAsHm(requiredWorkMinutes) }}</span>
+  <UiHudPanel :tone="isHalved ? 'ok' : 'default'" :glow="isHalved" class="@container">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-3">
+      <span
+        v-if="phase"
+        class="shrink-0 px-2 py-0.5 border font-mono text-[11px] font-bold tracking-[0.12em]"
+        :class="isHalved ? 'border-ok text-ok' : 'border-ink-mute text-ink-soft'"
+      >
+        {{ String(phase).padStart(2, '0') }}
+      </span>
+      <h3 class="font-display text-lg font-bold tracking-[0.08em]">{{ title }}</h3>
+      <p class="text-ink-soft text-sm">
+        階段所需工時
+        <span class="font-mono font-bold" :class="isHalved ? 'text-ok' : 'text-ink'">
+          {{ formatMinutesAsHm(requiredWorkMinutes) }}
+        </span>
       </p>
+      <span
+        v-if="isHalved"
+        class="px-2 py-0.5 border border-ok font-mono text-[10px] font-bold tracking-[0.14em] text-ok"
+      >
+        ◆ 工作量減半
+      </span>
     </div>
 
     <div class="flex items-center gap-4">
@@ -82,43 +100,47 @@ const originalDurationDeltaPercent = computed(() => {
         <div v-if="variant !== 'critical'">
           <template v-if="companionCodeName">
             <p>
-              幹員：{{ companionCodeName }}
-              <span class="hidden @sm:inline">(+{{ companionEfficiencyPercent }}%)</span>
+              <span class="text-ink-soft text-sm">幹員</span> {{ companionCodeName }}
+              <span class="hidden @sm:inline font-mono text-xs text-ink-soft">+{{ companionEfficiencyPercent }}%</span>
             </p>
             <p
               v-if="companionCategory === 'specific' && companionMemo"
-              class="hidden @sm:block text-amber-600 text-sm"
+              class="hidden @sm:block text-warn text-sm"
             >
               ({{ companionMemo }})
             </p>
-            <p class="font-bold">
-              訓練時間：<span class="text-blue-600">{{ formatMinutesAsHm(companionDurationMinutes ?? 0) }}</span>
+            <p class="flex items-baseline gap-1.5">
+              <span class="text-ink-soft text-sm">訓練時間</span>
+              <span class="font-mono font-bold text-data">{{ formatMinutesAsHm(companionDurationMinutes ?? 0) }}</span>
             </p>
           </template>
-          <p v-else class="text-gray-500 text-sm">目前沒有符合條件的陪練幹員。</p>
+          <p v-else class="text-ink-soft text-sm">目前沒有符合條件的陪練幹員。</p>
         </div>
-        <div v-if="variant === 'general'" class="text-xl font-semibold text-gray-400 text-center">+</div>
+        <div v-if="variant === 'general'" class="font-display text-xl text-ink-mute text-center">＋</div>
         <div v-if="variant !== 'base'">
           <template v-if="criticalCodeName">
             <p>
-              幹員：{{ criticalCodeName }}
-              <span class="hidden @sm:inline">(+{{ criticalEfficiencyPercent }}%)</span>
+              <span class="text-ink-soft text-sm">幹員</span> {{ criticalCodeName }}
+              <span class="hidden @sm:inline font-mono text-xs text-ink-soft">+{{ criticalEfficiencyPercent }}%</span>
             </p>
-            <p v-if="criticalMemo" class="hidden @sm:block text-green-600 text-sm">({{ criticalMemo }})</p>
-            <p>訓練時間：{{ formatMinutesAsHm(criticalDurationMinutes) }}</p>
+            <p v-if="criticalMemo" class="hidden @sm:block text-ok text-sm">({{ criticalMemo }})</p>
+            <p class="flex items-baseline gap-1.5">
+              <span class="text-ink-soft text-sm">訓練時間</span>
+              <span class="font-mono font-bold">{{ formatMinutesAsHm(criticalDurationMinutes) }}</span>
+            </p>
           </template>
-          <p v-else class="text-gray-500 text-sm">目前沒有符合條件的 critical 候選幹員。</p>
+          <p v-else class="text-ink-soft text-sm">目前沒有符合條件的 critical 候選幹員。</p>
         </div>
       </div>
 
-      <div class="flex flex-col items-center justify-center text-center shrink-0 w-20 font-semibold">
-        <span :class="isHalved ? 'text-green-600' : ''">
+      <div class="flex flex-col items-center justify-center text-center shrink-0 w-20 font-mono font-bold">
+        <span :class="isHalved ? 'text-ok' : ''">
           {{ durationDeltaPercent >= 0 ? '+' : '' }}{{ durationDeltaPercent.toFixed(1) }}%
         </span>
-        <span v-if="isHalved" class="text-xs font-normal">
+        <span v-if="isHalved" class="text-xs font-normal text-ink-soft">
           ({{ originalDurationDeltaPercent >= 0 ? '+' : '' }}{{ originalDurationDeltaPercent.toFixed(1) }}%)
         </span>
       </div>
     </div>
-  </section>
+  </UiHudPanel>
 </template>

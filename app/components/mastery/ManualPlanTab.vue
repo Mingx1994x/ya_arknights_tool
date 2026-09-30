@@ -304,14 +304,11 @@ const remainingMinutes = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between gap-4">
-      <label class="flex flex-col gap-1 text-sm max-w-40">
-        <span class="font-semibold">起始階段</span>
-        <select
-          v-model.number="startStage"
-          class="px-2.5 py-1.5 border border-gray-300 rounded"
-        >
+  <div class="flex flex-col gap-5">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <label class="flex flex-col gap-1.5 text-sm w-40">
+        <span class="font-mono text-[11px] font-bold tracking-[0.16em] text-ink-mute">起始階段</span>
+        <select v-model.number="startStage" class="hud-field hud-select w-full px-2.5 py-1.5">
           <option :value="1">專精一</option>
           <option :value="2">專精二</option>
           <option :value="3">專精三</option>
@@ -321,12 +318,12 @@ const remainingMinutes = computed(() => {
       <MasteryCompletionTimeCard :remaining-minutes="remainingMinutes" />
     </div>
 
-    <p v-if="!props.selectedProfession" class="text-gray-500">
+    <p v-if="!props.selectedProfession" class="text-ink-soft">
       請先選擇幹員職業以取得候選幹員清單。
     </p>
     <template v-else>
-      <p v-if="pending" class="text-gray-500">候選幹員查詢中…</p>
-      <p v-else-if="error" class="text-red-600">
+      <p v-if="pending" class="text-ink-soft">候選幹員查詢中…</p>
+      <p v-else-if="error" class="text-danger">
         候選幹員查詢失敗，請稍後再試。
       </p>
 
@@ -338,6 +335,7 @@ const remainingMinutes = computed(() => {
         v-model:critical-hours="currentState.criticalHours"
         v-model:critical-minutes="currentState.criticalMinutes"
         :title="STAGE_LABELS[currentStage]"
+        :phase="currentStage"
         :required-work-minutes="requiredWork"
         :is-halved="isCurrentStageHalved"
         :companion-candidates="otherOperatorPool"
@@ -358,6 +356,7 @@ const remainingMinutes = computed(() => {
         v-for="locked in lockedStageList"
         :key="locked.phase"
         :title="`${STAGE_LABELS[locked.phase]}（已完成）`"
+        :phase="locked.phase"
         :required-work-minutes="locked.requiredWork"
         :is-halved="locked.isHalved"
         :variant="getLockedVariant(locked)"

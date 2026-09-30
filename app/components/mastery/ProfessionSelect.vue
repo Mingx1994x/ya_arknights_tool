@@ -5,30 +5,54 @@ const OPERATOR_PROFESSIONS: OperatorProfession[] = ['先鋒', '近衛', '重裝'
 
 const selectedProfession = defineModel<OperatorProfession | undefined>('selectedProfession')
 
-function onProfessionChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  selectedProfession.value = value ? (value as OperatorProfession) : undefined
+const tiles = ref<HTMLButtonElement[]>([])
+
+/**
+ * Roving tabindex：整組磚在 Tab 序列裡只佔一站，組內改用方向鍵移動。
+ * 還沒選過時落在第一顆。
+ */
+const focusIndex = computed(() => {
+  const index = OPERATOR_PROFESSIONS.indexOf(selectedProfession.value as OperatorProfession)
+  return index === -1 ? 0 : index
+})
+
+/** radiogroup 的慣例是方向鍵同時移動焦點與變更選取，跟原本的 select 行為一致 */
+function moveSelection(delta: number) {
+  const next = (focusIndex.value + delta + OPERATOR_PROFESSIONS.length) % OPERATOR_PROFESSIONS.length
+  selectedProfession.value = OPERATOR_PROFESSIONS[next]
+  nextTick(() => tiles.value[next]?.focus())
 }
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-4">
-    <label class="flex flex-col gap-1 text-sm">
-      <span class="font-semibold">幹員職業</span>
-      <select
-        class="min-w-32 px-2.5 py-1.5 border border-gray-300 rounded"
-        :value="selectedProfession ?? ''"
-        @change="onProfessionChange"
+  <div
+    role="radiogroup"
+    aria-label="幹員職業"
+    class="grid grid-cols-4 sm:grid-cols-8 gap-2"
+  >
+    <div
+      v-for="(profession, index) in OPERATOR_PROFESSIONS"
+      :key="profession"
+      :class="selectedProfession === profession ? 'drop-shadow-glow-data' : ''"
+    >
+      <button
+        ref="tiles"
+        type="button"
+        role="radio"
+        :aria-checked="selectedProfession === profession"
+        :tabindex="index === focusIndex ? 0 : -1"
+        class="notch-sm hud-focus w-full h-12 border font-display text-[17px] tracking-[0.08em] transition-colors"
+        :class="selectedProfession === profession
+          ? 'bg-surface-2 border-data text-data font-bold'
+          : 'bg-surface-1 border-ink-mute text-ink-soft hover:border-ink-soft hover:text-ink'"
+        @click="selectedProfession = profession"
+        @keydown.left.prevent="moveSelection(-1)"
+        @keydown.up.prevent="moveSelection(-1)"
+        @keydown.right.prevent="moveSelection(1)"
+        @keydown.down.prevent="moveSelection(1)"
       >
-        <option value="" disabled>請選擇職業</option>
-        <option
-          v-for="operatorClass in OPERATOR_PROFESSIONS"
-          :key="operatorClass"
-          :value="operatorClass"
-        >
-          {{ operatorClass }}
-        </option>
-      </select>
-    </label>
+        {{ profession }}
+      </button>
+    </div>
   </div>
 </template>

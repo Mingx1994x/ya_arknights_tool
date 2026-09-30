@@ -45,11 +45,15 @@ watch(
 </script>
 
 <template>
-  <section class="p-4 border border-gray-200 rounded-lg flex flex-wrap items-center justify-between gap-4">
+  <!-- 全站唯一常態發光的面板：這是使用者真正來拿的答案「我幾點會練完」 -->
+  <UiHudPanel tone="data" glow class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-4">
-      <div>
-        <p class="text-gray-500 text-sm">現在時間</p>
-        <p class="font-semibold">{{ now ? formatClockTime(now) : '--:--' }}</p>
+      <div class="flex flex-col gap-0.5">
+        <p class="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-soft">NOW 現在時間</p>
+        <!-- key 綁在時間戳上：值一換就重建節點，讓 hud-flash 動畫重播一次 -->
+        <p :key="now?.getTime() ?? 'idle'" class="font-mono text-lg font-bold text-ink animate-hud-flash">
+          {{ now ? formatClockTime(now) : '--:--' }}
+        </p>
       </div>
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -59,20 +63,25 @@ watch(
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
-        class="w-5 h-5 text-gray-300 shrink-0"
+        class="w-5 h-5 text-ink-mute shrink-0"
         aria-hidden="true"
       >
-        <line x1="5" y1="12" x2="19" y2="12" />
-        <polyline points="12 5 19 12 12 19" />
+        <polyline points="7 5 14 12 7 19" />
+        <polyline points="13 5 20 12 13 19" />
       </svg>
-      <div>
-        <p class="text-gray-500 text-sm">大約完成時間</p>
-        <p class="font-semibold text-blue-600">{{ completionAt ? formatClockTime(completionAt) : '--:--' }}</p>
+      <div class="flex flex-col gap-0.5">
+        <p class="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-soft">ETA 大約完成時間</p>
+        <p
+          :key="completionAt?.getTime() ?? 'idle'"
+          class="font-mono text-lg font-bold text-data animate-hud-flash"
+        >
+          {{ completionAt ? formatClockTime(completionAt) : '--:--' }}
+        </p>
       </div>
     </div>
     <button
       type="button"
-      class="p-1.5 text-gray-500 border border-gray-300 rounded hover:bg-gray-50"
+      class="notch-sm hud-focus p-2 border border-ink-mute text-ink-soft transition-colors hover:border-data hover:text-data"
       aria-label="重新整理"
       title="重新整理"
       @click="refresh"
@@ -93,5 +102,5 @@ watch(
         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
       </svg>
     </button>
-  </section>
+  </UiHudPanel>
 </template>
