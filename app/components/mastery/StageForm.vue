@@ -4,6 +4,8 @@ import type { SupportOperator, SupportOperatorCategory } from '#shared/types/sup
 const props = withDefaults(
   defineProps<{
     title: string
+    /** 專精階段序號（1／2／3），顯示成 01／02／03 的 HUD 序號標，跟 StageCard 同一套 */
+    phase?: number
     requiredWorkMinutes: number
     /** 該階段的所需工時是否已套用跨階段減半，跟 StageCard 的 isHalved 同一套規則 */
     isHalved?: boolean
@@ -90,15 +92,36 @@ const plusColSpanClass = computed(
 </script>
 
 <template>
-  <section
-    :class="isHalved ? 'border-green-600' : 'border-gray-200'"
-    class="p-4 border rounded-lg flex flex-col gap-4 @container"
+  <UiHudPanel
+    :tone="isHalved ? 'ok' : 'default'"
+    :glow="isHalved"
+    class="flex flex-col gap-4 @container"
   >
-    <div class="flex items-baseline justify-start gap-2">
-      <h3 class="text-lg font-semibold">{{ title }}</h3>
-      <p class="text-gray-500 text-sm">
-        階段所需工時：<span :class="isHalved ? 'text-green-600' : ''">{{ formatMinutesAsHm(requiredWorkMinutes) }}</span>
-      </p>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span
+          v-if="phase"
+          class="shrink-0 px-2 py-0.5 border font-mono text-[11px] font-bold tracking-[0.12em]"
+          :class="isHalved ? 'border-ok text-ok' : 'border-ink-mute text-ink-soft'"
+        >
+          {{ String(phase).padStart(2, '0') }}
+        </span>
+        <h3 class="font-display text-lg font-bold tracking-[0.08em]">{{ title }}</h3>
+        <p class="text-ink-soft text-sm">
+          階段所需工時
+          <span class="font-mono font-bold" :class="isHalved ? 'text-ok' : 'text-ink'">
+            {{ formatMinutesAsHm(requiredWorkMinutes) }}
+          </span>
+        </p>
+        <span
+          v-if="isHalved"
+          class="px-2 py-0.5 border border-ok font-mono text-[10px] font-bold tracking-[0.14em] text-ok"
+        >
+          ◆ 工作量減半
+        </span>
+      </div>
+      <!-- 「編輯中」與「減半」是兩個獨立訊號：前者用 data 標籤，後者用 ok 邊框，不共用顏色 -->
+      <UiHudTag label="EDITING / 編輯中" />
     </div>
 
     <div
@@ -110,32 +133,34 @@ const plusColSpanClass = computed(
         class="flex flex-col gap-2"
         :class="variant === 'final' ? 'w-3/5 justify-self-start' : ''"
       >
-        <div class="flex items-center justify-between">
-          <span class="font-semibold text-sm">陪練幹員</span>
+        <div class="flex items-center justify-between gap-2">
+          <span class="font-mono text-[11px] font-bold tracking-[0.16em] text-ink-mute">陪練幹員</span>
           <button
             v-if="variant !== 'final'"
             type="button"
-            class="w-5 h-5 flex items-center justify-center rounded-full border border-red-300 text-xs leading-none text-red-500 hover:border-red-500 hover:text-red-700 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed"
+            class="hud-focus w-5 h-5 flex items-center justify-center rounded-full border border-danger text-xs leading-none text-danger transition-colors hover:bg-danger hover:text-surface-0 cursor-pointer disabled:cursor-not-allowed disabled:border-ink-mute disabled:bg-transparent disabled:text-ink-mute"
             :disabled="variant !== 'general'"
+            aria-label="移除陪練幹員"
             @click="variant = 'critical'"
           >
-            -
+            −
           </button>
         </div>
-        <p v-if="companionCategory === 'specific' && companionMemo" class="text-sm text-amber-600">
+        <p v-if="companionCategory === 'specific' && companionMemo" class="text-sm text-warn">
           ({{ companionMemo }})
         </p>
-        <select v-model="companionOperatorId" class="px-2.5 py-1.5 border border-gray-300 rounded">
+        <select v-model="companionOperatorId" class="hud-field hud-select px-2.5 py-1.5">
           <option value="">請選擇</option>
           <option v-for="c in companionCandidates" :key="c.id" :value="c.id">
             {{ c.codeName }}(+{{ c.realEfficiency }}%)
           </option>
         </select>
-        <p v-if="!companionOperatorId" class="text-sm text-gray-500">
+        <p v-if="!companionOperatorId" class="text-sm text-ink-soft">
           訓練時間：---(請先選擇幹員)
         </p>
-        <p v-else class="font-bold">
-          訓練時間：<span class="text-blue-600">
+        <p v-else class="flex items-baseline gap-1.5">
+          <span class="text-ink-soft text-sm">訓練時間</span>
+          <span class="font-mono font-bold text-data">
             {{ companionDurationMinutes != null ? formatMinutesAsHm(companionDurationMinutes) : '不需要' }}
           </span>
         </p>
@@ -143,58 +168,63 @@ const plusColSpanClass = computed(
 
       <div
         v-if="variant !== 'final'"
-        class="flex items-center justify-center rounded-lg"
-        :class="[plusColSpanClass, bothPresent ? '' : 'border border-dashed border-gray-300']"
+        class="flex items-center justify-center"
+        :class="[plusColSpanClass, bothPresent ? '' : 'notch-sm border border-dashed border-ink-mute']"
       >
         <button
           type="button"
-          class="text-xl font-semibold"
-          :class="bothPresent ? 'text-gray-400 cursor-default' : 'text-blue-600 hover:text-blue-700 cursor-pointer'"
+          class="hud-focus font-display text-xl transition-colors"
+          :class="bothPresent ? 'text-ink-mute cursor-default' : 'text-data hover:text-ink cursor-pointer'"
           :disabled="bothPresent"
+          :aria-label="bothPresent ? '兩位幹員都已安排' : '加回幹員'"
           @click="variant = 'general'"
         >
-          +
+          ＋
         </button>
       </div>
 
       <div v-if="showCritical" class="flex flex-col gap-2">
-        <div class="flex items-center justify-between">
-          <span class="font-semibold text-sm">幹員(Logos／艾麗妮)</span>
+        <div class="flex items-center justify-between gap-2">
+          <span class="font-mono text-[11px] font-bold tracking-[0.16em] text-ink-mute">
+            CRITICAL 幹員(Logos／艾麗妮)
+          </span>
           <button
             type="button"
-            class="w-5 h-5 flex items-center justify-center rounded-full border border-red-300 text-xs leading-none text-red-500 hover:border-red-500 hover:text-red-700 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed"
+            class="hud-focus w-5 h-5 flex items-center justify-center rounded-full border border-danger text-xs leading-none text-danger transition-colors hover:bg-danger hover:text-surface-0 cursor-pointer disabled:cursor-not-allowed disabled:border-ink-mute disabled:bg-transparent disabled:text-ink-mute"
             :disabled="variant !== 'general'"
+            aria-label="移除 critical 幹員"
             @click="variant = 'base'"
           >
-            -
+            −
           </button>
         </div>
-        <p v-if="triggersNextHalving" class="text-sm text-green-600">(陪滿 5 小時，下一階段所需工時將減半)</p>
-        <select v-model="criticalOperatorId" class="px-2.5 py-1.5 border border-gray-300 rounded">
+        <p v-if="triggersNextHalving" class="text-sm text-ok">(陪滿 5 小時，下一階段所需工時將減半)</p>
+        <select v-model="criticalOperatorId" class="hud-field hud-select px-2.5 py-1.5">
           <option value="">請選擇</option>
           <option v-for="c in criticalCandidates" :key="c.id" :value="c.id">
             {{ c.codeName }}(+{{ c.realEfficiency }}%)
           </option>
         </select>
 
-        <p v-if="!criticalOperatorId" class="text-sm text-gray-500">
+        <p v-if="!criticalOperatorId" class="text-sm text-ink-soft">
           訓練時間：---(請先選擇幹員)
         </p>
         <template v-else>
-          <p v-if="isCriticalOnly" class="font-bold">
-            訓練時間：<span class="text-blue-600">
+          <p v-if="isCriticalOnly" class="flex items-baseline gap-1.5">
+            <span class="text-ink-soft text-sm">訓練時間</span>
+            <span class="font-mono font-bold text-data">
               {{ criticalOnlyDurationMinutes != null ? formatMinutesAsHm(criticalOnlyDurationMinutes) : '不需要' }}
             </span>
           </p>
           <template v-else>
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="font-semibold">訓練時間(下限 5 小時，預設含 5 分鐘操作緩衝)</span>
-              <span class="flex items-center gap-1">
+            <label class="flex flex-col gap-1.5 text-sm">
+              <span class="text-ink-soft">訓練時間(下限 5 小時，預設含 5 分鐘操作緩衝)</span>
+              <span class="flex items-center gap-1.5">
                 <input
                   v-model.number="criticalHours"
                   type="number"
                   min="0"
-                  class="w-16 px-1.5 py-1 border border-gray-300 rounded"
+                  class="hud-field w-16 px-1.5 py-1 font-mono"
                 >
                 小時
                 <input
@@ -203,16 +233,16 @@ const plusColSpanClass = computed(
                   min="0"
                   max="55"
                   step="5"
-                  class="w-16 px-1.5 py-1 border border-gray-300 rounded"
+                  class="hud-field w-16 px-1.5 py-1 font-mono"
                 >
                 分
               </span>
             </label>
-            <p v-if="isCriticalInputInvalid" class="text-sm text-amber-600">
+            <p v-if="isCriticalInputInvalid" class="text-sm text-warn">
               輸入格式有誤，實際計算已自動改用
               {{ formatMinutesAsHm(effectiveCriticalDurationMinutes) }}。
             </p>
-            <p v-else-if="isCriticalDurationClamped" class="text-sm text-amber-600">
+            <p v-else-if="isCriticalDurationClamped" class="text-sm text-warn">
               已達工時上限，實際計算已自動改用
               {{ formatMinutesAsHm(effectiveCriticalDurationMinutes) }}。
             </p>
@@ -221,14 +251,19 @@ const plusColSpanClass = computed(
       </div>
     </div>
 
-    <button
-      v-if="variant !== 'final'"
-      type="button"
-      class="self-end px-4 py-2 rounded bg-blue-600 text-white font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
-      :disabled="!canAdvance"
-      @click="emit('advance')"
-    >
-      前往下一階段
-    </button>
-  </section>
+    <!-- glow 掛在外層：notch-sm 的 clip-path 會把按鈕自己的陰影一起裁掉 -->
+    <div v-if="variant !== 'final'" class="self-end" :class="canAdvance ? 'drop-shadow-glow-brand' : ''">
+      <button
+        type="button"
+        class="notch-sm hud-focus px-5 py-2.5 border-2 font-mono text-[13px] font-bold tracking-[0.18em] transition-colors"
+        :class="canAdvance
+          ? 'border-brand text-brand hover:bg-brand hover:text-surface-0 cursor-pointer'
+          : 'border-ink-mute text-ink-mute cursor-not-allowed'"
+        :disabled="!canAdvance"
+        @click="emit('advance')"
+      >
+        前往下一階段
+      </button>
+    </div>
+  </UiHudPanel>
 </template>

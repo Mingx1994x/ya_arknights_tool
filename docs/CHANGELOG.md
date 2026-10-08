@@ -21,6 +21,15 @@
 - `SupportOperatorPhaseGroup`（`shared/types/support-operator.ts`）新增 `criticalCandidates` 便利欄位：`server/utils/support-operator-candidates.ts` 的 `resolveCandidatesByPhase()` 每組多回傳 `candidates` 篩出 `category === 'critical'` 的子集（同樣依 `realEfficiency` 排序），`candidates` 本身維持不變、不排除 critical。`AutoPlanTab.vue`／`ManualPlanTab.vue` 改直接取用 `criticalCandidates`，不用再各自從混合陣列 `.find`/`.filter` 篩一次；新增 `tests/unit/support-operator-candidates.test.ts` 驗證此欄位。
 - 兩個分頁的「起始階段」選單同一列新增「現在時間／大約完成時間」估算區塊（新元件 `app/components/mastery/CompletionTimeCard.vue`）：大約完成時間＝現在時間＋目前這份排程剩餘所需的陪同時間；新增 `formatClockTime`（`app/utils/mastery.ts`）格式化成 `M/D HH:mm`。`remainingMinutes` 不足以估算時（尚未選職業、查詢中／失敗）回傳 `null`，兩個時間欄位顯示 `--:--`。Tab A（`AutoPlanTab.vue`）加總整份建議排程；Tab B（`ManualPlanTab.vue`）只加總「已鎖定階段」（按過「前往下一階段」的）的實際陪同時間，不含目前正在編輯、尚未鎖定的階段（避免輸入到一半的數值被算進去），專精三因為沒有下一階段可觸發鎖定，改用「本階段是否已排出完整排程」視同鎖定。完成時間只在 `remainingMinutes` 本身變成新數字時才自動重算一次（例如換職業、真的鎖定一個階段），不隨每次輸入變動跳動；另外提供「重新整理」按鈕處理「排程沒變、現在時間過期」的情境。詳見 [FEATURES.md](./FEATURES.md)。
 
+- 全站套用賽博龐克「羅德島訓練終端」設計系統（規範見 [docs/design/README.md](./design/README.md)；Pencil 設計稿 `*.pen` 為加密二進位格式，不進版控），取代原本的 Nuxt 預設外觀。**只改視覺層，`app/utils/mastery.ts`／`app/composables/`／`shared/`／`server/`／`tests/` 一律未動。**
+  - `app/assets/css/main.css` 原本只有一行 `@import "tailwindcss";`，現在額外定義 Tailwind v4 `@theme`（`surface-0/1/2`、`ink`／`ink-soft`／`ink-mute`、`data`／`ok`／`warn`／`danger`／`brand`、三組 `drop-shadow-glow-*`、三種字型）、`@utility`（`notch-lg`／`notch-sm` 切角、`hud-focus`、`hud-field`／`hud-select`）與 `@layer base`（底色、背景網格、`color-scheme: dark`、`prefers-reduced-motion`）。選 `@theme` 而非 `:root`，是為了讓現有的純 utility-class 寫法可以原樣保留（自動產出 `bg-surface-1`、`text-data`），不必全部改寫成 `bg-[var(--x)]`。
+  - 新增 `app/layouts/default.vue`（HUD topbar／footer）；`app/app.vue` 必須把 `<NuxtPage />` 包進 `<NuxtLayout>`，否則有 `app.vue` 時 `app/layouts/` 不會生效。
+  - 新增共用元件 `app/components/ui/HudPanel.vue`／`HudTag.vue`。`p-4 border rounded-lg` 原本重複寫在 `CompletionTimeCard.vue`／`StageCard.vue`／`StageForm.vue` 三處，抽成 `<UiHudPanel>` 後改一處即可。
+  - `ProfessionSelect.vue` 的原生 `<select>` 改為 8 個切角磚（`role="radiogroup"` + roving tabindex + 方向鍵導覽）；其餘下拉與數字輸入維持原生元素，只換觸發器樣式（展開後的 option 面板由系統繪製，只能靠 `color-scheme: dark` 影響）。
+  - `StageCard.vue`／`StageForm.vue` 新增 `phase` prop，顯示 `01`／`02`／`03` HUD 序號標——專精階段是真正的序列才用編號，職業磚與模組標籤都不編號。
+  - `app/pages/index.vue` 從 `<NuxtWelcome />` 佔位改為工具索引頁。
+  - 字型（Chakra Petch／Noto Sans TC／JetBrains Mono）走 `nuxt.config.ts` 的 `app.head.link` 載入，**未新增 npm 依賴**，故 `docs/README.md` 的依賴表不變。時刻與工時一律用 mono 的等寬數字，時鐘更新時字寬才不會跳。
+
 ### Fixed
 - 修正 `server/utils/support-operator-candidates.ts` 的 `resolveCandidatesByPhase()` 候選幹員篩選規則：
   - 階段資格改用 `targetPhase` 通用判斷（`0` = 不限階段、1/2/3 = 限定階段），取代原本寫死「只有 `category === 'skill'` 才檢查 `targetPhase`」的判斷。

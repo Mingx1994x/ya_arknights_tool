@@ -1,1 +1,173 @@
 @import "tailwindcss";
+
+/**
+ * 賽博龐克「羅德島訓練終端」設計系統。
+ * token 定義與語意分工見 docs/design/README.md，設計稿見 docs/design/arknight_tool.pen。
+ *
+ * 用 @theme 而不是 :root：@theme 會讓 Tailwind 自動產出 bg-surface-1／text-data／
+ * font-mono 這類 utility，現有元件的純 utility-class 寫法可以原樣保留；改用 :root
+ * 就得把每個 class 重寫成 bg-[var(--x)]。
+ */
+@theme {
+  --color-surface-0: #050111;
+  --color-surface-1: #0c0822;
+  --color-surface-2: #1a1140;
+
+  --color-ink: #e0e0ff;
+  --color-ink-soft: #9090b0;
+  --color-ink-mute: #5a5a78;
+
+  --color-data: #00fff5;
+  --color-ok: #00ff85;
+  --color-warn: #ffeb00;
+  --color-danger: #ff003c;
+  --color-brand: #ff2a87;
+  /* 使用者主動選定後的強調色，刻意跟 data（資料讀數用的藍綠色）區隔開 */
+  --color-pick: #ffa629;
+
+  --color-rule: #00fff540;
+  /* 網格只是質感底噪，不該搶內容；實測 12% 在 1280 寬會太吵，壓到 5% */
+  --color-grid: #00fff50d;
+
+  /* Chakra Petch／JetBrains Mono 沒有中文字符，交給瀏覽器 per-glyph fallback 到 Noto Sans TC */
+  --font-display: "Chakra Petch", "Noto Sans TC", ui-sans-serif, sans-serif;
+  --font-body: "Noto Sans TC", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  /**
+   * 用 drop-shadow 而不是 box-shadow：切角是靠 clip-path 做的，而 CSS 的算繪順序是
+   * filter → clip-path，所以同一個元素上的 box-shadow 會連同切角一起被裁掉。改成由外層
+   * wrapper 套 drop-shadow，wrapper 本身不切角，濾鏡才會沿著子元素裁切後的輪廓生效。
+   * drop-shadow 的模糊半徑觀感約是 box-shadow 的兩倍，數值因此比 skill 原值小。
+   */
+  --drop-shadow-glow-data: 0 0 14px rgb(0 255 245 / 0.45);
+  --drop-shadow-glow-ok: 0 0 12px rgb(0 255 133 / 0.4);
+  --drop-shadow-glow-brand: 0 0 10px rgb(255 42 135 / 0.5);
+  --drop-shadow-glow-pick: 0 0 16px rgb(255 166 41 / 0.55);
+
+  --animate-hud-flash: hud-flash 420ms ease-out;
+
+  @keyframes hud-flash {
+    from {
+      opacity: 0.3;
+      text-shadow: 0 0 18px currentColor;
+    }
+    to {
+      opacity: 1;
+      text-shadow: none;
+    }
+  }
+}
+
+/* 切角：一律切右上角，面板 16px、控件 8px。圓角一律 0。 */
+@utility notch-lg {
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+}
+
+@utility notch-sm {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+
+/**
+ * 切角元素的 focus 態。外框式的 outline／ring 一樣會被 clip-path 裁掉，所以改成
+ * 「邊框轉 data + 往內 1px 的 inset shadow」，視覺上等於一條 2px 的青色邊。
+ */
+@utility hud-focus {
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-data);
+    box-shadow: inset 0 0 0 1px var(--color-data);
+  }
+}
+
+/* 表單控件共用底：深色底 + 細邊 + 切角 */
+@utility hud-field {
+  background-color: var(--color-surface-2);
+  border: 1px solid var(--color-ink-mute);
+  color: var(--color-ink);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-data);
+    box-shadow: inset 0 0 0 1px var(--color-data);
+  }
+}
+
+/* 隱藏捲軸但保留捲動功能，用在手機寬度的水平滑動列（例如職業磚） */
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/**
+ * 原生 select 的觸發器。展開後的 option 面板由作業系統繪製，只能靠 html 的
+ * color-scheme: dark 影響它，無法完全控制樣式——這是保留原生 select 的已知取捨。
+ */
+@utility hud-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239090b0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 14px;
+  padding-right: 28px;
+}
+
+@layer base {
+  html {
+    /* 讓原生 select 的下拉面板、scrollbar、autofill 一併走深色 */
+    color-scheme: dark;
+    background-color: var(--color-surface-0);
+  }
+
+  body {
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /**
+   * 全域背景：cyan 細網格 + 兩角霓虹光暈。z-index -1 讓它壓在 body 內容之下、html
+   * 底色之上，不需要在每個頁面容器補 z-index。
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 0% 0%, rgb(255 42 135 / 0.055) 0%, transparent 38%),
+      radial-gradient(ellipse at 100% 100%, rgb(0 255 245 / 0.05) 0%, transparent 38%),
+      repeating-linear-gradient(0deg, var(--color-grid) 0 1px, transparent 1px 88px),
+      repeating-linear-gradient(90deg, var(--color-grid) 0 1px, transparent 1px 88px);
+  }
+
+  option {
+    background-color: var(--color-surface-2);
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background-color: var(--color-data);
+    color: var(--color-surface-0);
+  }
+
+  /* 時刻與工時一律等寬數字，時鐘更新時字寬才不會跳 */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
