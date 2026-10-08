@@ -41,7 +41,7 @@ function moveSelection(delta: number) {
         role="radio"
         :aria-checked="selectedProfession === profession"
         :tabindex="index === focusIndex ? 0 : -1"
-        class="notch-sm hud-focus w-full h-12 border font-display text-[17px] tracking-[0.08em] transition-colors"
+        class="notch-sm hud-focus w-full h-12 border font-display text-[17px] tracking-[0.08em] transition-colors cursor-pointer"
         :class="selectedProfession === profession
           ? 'bg-surface-2 border-pick text-pick font-bold'
           : 'bg-surface-1 border-ink-mute text-ink-soft hover:border-data hover:text-data'"

@@ -138,7 +138,7 @@ const plusColSpanClass = computed(
           <button
             v-if="variant !== 'final'"
             type="button"
-            class="hud-focus w-5 h-5 flex items-center justify-center rounded-full border border-danger text-xs leading-none text-danger transition-colors hover:bg-danger hover:text-surface-0 disabled:border-ink-mute disabled:bg-transparent disabled:text-ink-mute disabled:cursor-not-allowed"
+            class="hud-focus w-5 h-5 flex items-center justify-center rounded-full border border-danger text-xs leading-none text-danger transition-colors hover:bg-danger hover:text-surface-0 cursor-pointer disabled:cursor-not-allowed disabled:border-ink-mute disabled:bg-transparent disabled:text-ink-mute"
             :disabled="variant !== 'general'"
             aria-label="移除陪練幹員"
             @click="variant = 'critical'"
@@ -190,7 +190,7 @@ const plusColSpanClass = computed(
           </span>
           <button
             type="button"
-            class="hud-focus w-5 h-5 flex items-center justify-center rounded-full border border-danger text-xs leading-none text-danger transition-colors hover:bg-danger hover:text-surface-0 disabled:border-ink-mute disabled:bg-transparent disabled:text-ink-mute disabled:cursor-not-allowed"
+            class="hud-focus w-5 h-5 flex items-center justify-center rounded-full border border-danger text-xs leading-none text-danger transition-colors hover:bg-danger hover:text-surface-0 cursor-pointer disabled:cursor-not-allowed disabled:border-ink-mute disabled:bg-transparent disabled:text-ink-mute"
             :disabled="variant !== 'general'"
             aria-label="移除 critical 幹員"
             @click="variant = 'base'"
@@ -257,7 +257,7 @@ const plusColSpanClass = computed(
         type="button"
         class="notch-sm hud-focus px-5 py-2.5 border-2 font-mono text-[13px] font-bold tracking-[0.18em] transition-colors"
         :class="canAdvance
-          ? 'border-brand text-brand hover:bg-brand hover:text-surface-0'
+          ? 'border-brand text-brand hover:bg-brand hover:text-surface-0 cursor-pointer'
           : 'border-ink-mute text-ink-mute cursor-not-allowed'"
         :disabled="!canAdvance"
         @click="emit('advance')"

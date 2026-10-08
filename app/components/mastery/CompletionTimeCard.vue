@@ -81,7 +81,7 @@ watch(
     </div>
     <button
       type="button"
-      class="notch-sm hud-focus p-2 border border-ink-mute text-ink-soft transition-colors hover:border-data hover:text-data"
+      class="notch-sm hud-focus p-2 border border-ink-mute text-ink-soft transition-colors hover:border-data hover:text-data cursor-pointer"
       aria-label="重新整理"
       title="重新整理"
       @click="refresh"

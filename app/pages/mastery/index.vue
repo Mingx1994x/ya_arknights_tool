@@ -43,7 +43,7 @@ const TABS = [
             type="button"
             role="tab"
             :aria-selected="activeTab === tab.value"
-            class="notch-sm hud-focus px-5 py-2.5 border font-display text-[15px] tracking-[0.08em] transition-colors"
+            class="notch-sm hud-focus px-5 py-2.5 border font-display text-[15px] tracking-[0.08em] transition-colors cursor-pointer"
             :class="activeTab === tab.value
               ? 'bg-surface-1 border-pick text-pick font-bold'
               : 'border-rule text-ink-soft hover:border-data hover:text-data'"
