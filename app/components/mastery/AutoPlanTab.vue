@@ -87,7 +87,11 @@ const variantByPhase = computed(() => {
     <div class="flex flex-wrap items-end justify-between gap-4">
       <label class="flex flex-col gap-1.5 text-sm w-40">
         <span class="font-mono text-[11px] font-bold tracking-[0.16em] text-ink-mute">起始階段</span>
-        <select v-model.number="startStage" class="hud-field hud-select w-full px-2.5 py-1.5">
+        <select
+          v-model.number="startStage"
+          :disabled="!props.selectedProfession"
+          class="hud-field hud-select w-full px-2.5 py-1.5 disabled:border-ink-mute disabled:bg-transparent disabled:text-ink-mute disabled:cursor-not-allowed"
+        >
           <option :value="1">專精一</option>
           <option :value="2">專精二</option>
           <option :value="3">專精三</option>
