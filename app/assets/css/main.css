@@ -94,6 +94,15 @@
   }
 }
 
+/* 隱藏捲軸但保留捲動功能，用在手機寬度的水平滑動列（例如職業磚） */
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /**
  * 原生 select 的觸發器。展開後的 option 面板由作業系統繪製，只能靠 html 的
  * color-scheme: dark 影響它，無法完全控制樣式——這是保留原生 select 的已知取捨。

@@ -134,7 +134,7 @@ clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
 | 元件 | 規則 |
 | --- | --- |
 | **HudTag** | `[ MODULE_01 / 幹員職業 ]`。括號是元件的一部分（CSS 用 `::before` / `::after`）。**必須帶真實資訊**（模組編號＋中文區塊名），不做純裝飾的 eyebrow label。 |
-| **ProfessionTile** | 取代原生 `<select>`。三階視覺：未選取＝`surface-1` 底 + `ink-mute` 細邊 + `ink-soft` 字；hover＝邊框／文字轉 `data`＋ glow-data 預覽（放開就消失）；選定＝`surface-2` 底 + `pick` 邊 + `pick` 字 + glow-pick 常態發光。實作需 `role="radiogroup"` + 方向鍵導覽。 |
+| **ProfessionTile** | 取代原生 `<select>`。三階視覺：未選取＝`surface-1` 底 + `ink-mute` 細邊 + `ink-soft` 字；hover＝邊框／文字轉 `data`＋ glow-data 預覽（放開就消失）；選定＝`surface-2` 底 + `pick` 邊 + `pick` 字 + glow-pick 常態發光。實作需 `role="radiogroup"` + 方向鍵導覽。**< 768px（`md` 斷點以下）改水平捲動**：容器 `flex overflow-x-auto scrollbar-none snap-x`、磚固定寬 `w-24` 不壓縮；`md:` 以上恢復 `grid-cols-8` 單行平分、取消捲動。鍵盤方向鍵移動焦點時瀏覽器原生 `focus()` 會自動把新焦點捲進可視範圍，不需額外處理。 |
 | **ModeTab** | 切角 tab + 底部 2px 光條，跟 ProfessionTile 同一套三階視覺：預設＝`rule` 邊；hover＝邊框／文字轉 `data`＋ glow-data 預覽；active＝`pick` 邊框＋底部光條＋ glow-pick 常態發光。 |
 | **SelectControl / NumberInput** | 保留原生 `<select>` / `<input>`，只改觸發器樣式：`surface-2` 底、`ink-mute` 邊、8px 切角。focus 時邊框與 ring 轉 `data`。 |
 | **PrimaryButton** | `brand` 粉色 2px 邊 + glow，**全站只有「前往下一階段」用它**。 |
@@ -189,6 +189,5 @@ clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
 
 ## 尚未涵蓋
 
-- 首頁 `/`（目前還是 `<NuxtWelcome />`）
-- 手機版（375px）版面
+- 手機版（375px）版面——目前只有 ProfessionTile 做了 `md` 斷點以下的水平捲動處理，頁面其餘區塊（StageCard／StageForm／CompletionCard）還是沿用桌機版面直接縮放
 - loading / empty / error 三態的視覺

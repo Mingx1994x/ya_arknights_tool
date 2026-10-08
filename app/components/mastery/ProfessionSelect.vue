@@ -28,11 +28,12 @@ function moveSelection(delta: number) {
   <div
     role="radiogroup"
     aria-label="幹員職業"
-    class="grid grid-cols-4 sm:grid-cols-8 gap-2"
+    class="flex md:grid md:grid-cols-8 gap-2 overflow-x-auto scrollbar-none snap-x snap-mandatory md:overflow-visible md:snap-none"
   >
     <div
       v-for="(profession, index) in OPERATOR_PROFESSIONS"
       :key="profession"
+      class="shrink-0 w-24 snap-start md:w-full"
       :class="selectedProfession === profession ? 'drop-shadow-glow-pick' : 'hover:drop-shadow-glow-data'"
     >
       <button
