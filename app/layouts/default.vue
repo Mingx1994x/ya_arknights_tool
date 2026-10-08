@@ -7,9 +7,6 @@
           <span class="font-mono text-[13px] font-bold tracking-[0.2em] text-ink">YA // ARKNIGHTS TOOLS</span>
         </NuxtLink>
 
-        <!-- 片假名全站只出現這一次（ロドス島＝羅德島，遊戲內用詞），不當裝飾到處撒 -->
-        <span class="hidden sm:inline text-xs tracking-[0.3em] text-ink-mute">ロドス島</span>
-
         <span class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-data" aria-hidden="true" />
           <span class="hidden sm:inline font-mono text-[11px] font-bold tracking-[0.2em] text-ink-soft">
