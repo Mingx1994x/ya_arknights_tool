@@ -33,7 +33,7 @@ function moveSelection(delta: number) {
     <div
       v-for="(profession, index) in OPERATOR_PROFESSIONS"
       :key="profession"
-      :class="selectedProfession === profession ? 'drop-shadow-glow-data' : ''"
+      :class="selectedProfession === profession ? 'drop-shadow-glow-pick' : 'hover:drop-shadow-glow-data'"
     >
       <button
         ref="tiles"
@@ -43,8 +43,8 @@ function moveSelection(delta: number) {
         :tabindex="index === focusIndex ? 0 : -1"
         class="notch-sm hud-focus w-full h-12 border font-display text-[17px] tracking-[0.08em] transition-colors"
         :class="selectedProfession === profession
-          ? 'bg-surface-2 border-data text-data font-bold'
-          : 'bg-surface-1 border-ink-mute text-ink-soft hover:border-ink-soft hover:text-ink'"
+          ? 'bg-surface-2 border-pick text-pick font-bold'
+          : 'bg-surface-1 border-ink-mute text-ink-soft hover:border-data hover:text-data'"
         @click="selectedProfession = profession"
         @keydown.left.prevent="moveSelection(-1)"
         @keydown.up.prevent="moveSelection(-1)"

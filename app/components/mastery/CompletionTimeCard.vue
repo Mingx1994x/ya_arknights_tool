@@ -45,8 +45,8 @@ watch(
 </script>
 
 <template>
-  <!-- 全站唯一常態發光的面板：這是使用者真正來拿的答案「我幾點會練完」 -->
-  <UiHudPanel tone="data" glow class="flex flex-wrap items-center justify-between gap-4">
+  <!-- hover 才發光：跟幹員職業磚的「選定後常態發光」對調，這裡改成互動回饋而非常態狀態 -->
+  <UiHudPanel tone="data" glow-on-hover class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-4">
       <div class="flex flex-col gap-0.5">
         <p class="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-soft">NOW 現在時間</p>

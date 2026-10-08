@@ -7,10 +7,12 @@ withDefaults(
   defineProps<{
     /** 邊框語意色：`default` 一般、`ok` 減半生效、`data` 資料強調 */
     tone?: 'default' | 'ok' | 'data'
-    /** 是否發光。全站同時最多出現一到兩處（完成時間卡固定發光，減半階段卡是狀態） */
+    /** 是否固定發光，用於持續存在的狀態（例如減半階段卡） */
     glow?: boolean
+    /** 是否只在 hover 時發光，用於互動回饋而非常態狀態（例如完成時間卡） */
+    glowOnHover?: boolean
   }>(),
-  { tone: 'default', glow: false },
+  { tone: 'default', glow: false, glowOnHover: false },
 )
 
 const BORDER_BY_TONE = {
@@ -30,11 +32,17 @@ const GLOW_BY_TONE = {
   data: 'drop-shadow-glow-data',
 } as const
 
+const HOVER_GLOW_BY_TONE = {
+  default: 'hover:drop-shadow-glow-data',
+  ok: 'hover:drop-shadow-glow-ok',
+  data: 'hover:drop-shadow-glow-data',
+} as const
+
 defineOptions({ inheritAttrs: false })
 </script>
 
 <template>
-  <div :class="glow ? GLOW_BY_TONE[tone] : ''">
+  <div :class="[glow ? GLOW_BY_TONE[tone] : '', glowOnHover ? HOVER_GLOW_BY_TONE[tone] : '']">
     <section v-bind="$attrs" class="notch-lg border bg-surface-1 p-5" :class="BORDER_BY_TONE[tone]">
       <slot />
     </section>

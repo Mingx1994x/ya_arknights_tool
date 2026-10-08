@@ -13,9 +13,9 @@
 ### 焦點配置
 
 - **主視覺區（面積最大）**：階段卡序列。這是使用者真正在讀的內容。
-- **唯一的發光焦點**：完成時間卡。整頁只有它帶 neon glow。
+- **發光是互動／狀態回饋，不是常態裝飾**：完成時間卡平常不發光，**hover 才發光**（互動回饋，告訴使用者這塊是活的）；職業磚**選定後常態發光**（狀態持續存在，用橘色 `pick` 跟資料色區隔開），未選取時 hover 會先用青色 `data` 預覽發光。
 
-「把大膽用在一個地方」用發光而非面積表達。職業磚未選取時一律暗底細邊，只有選取那塊亮 `data`，避免 8 塊磚變彩虹搶戲。
+這跟最初設計稿的版本不同：稿子畫的是完成時間卡常態發光、職業磚選取後用資料色 `data` 發光。兩者對調之後，青色 `data` 統一代表「資料讀數／瀏覽中」，橘色 `pick` 專指「使用者已確定的選擇」，色彩語意更一致。職業磚未選取時一律暗底細邊，避免 8 塊磚同時搶戲。
 
 ---
 
@@ -36,24 +36,26 @@
 | `warn` | `#ffeb00` | 備註、輸入防呆 | `text-amber-600` | `--cp-yellow` |
 | `danger` | `#ff003c` | 錯誤、移除鈕 | `text-red-*` / `border-red-*` | `--cp-red` |
 | `brand` | `#ff2a87` | **全站唯一**的主要動作、品牌標記 | `bg-blue-600`（按鈕） | `--cp-pink` |
+| `pick` | `#ff7a1a` | 使用者**已選定**的狀態（目前僅職業磚），刻意跟 `data` 區隔開 | — | — |
 | `rule` | `#00fff540` | HUD 分隔線、tab 底線 | `border-gray-200` | — |
 | `grid` | `#00fff51f` | 背景網格線 | — | `--cp-grid` |
 
 ### 語意分工
 
-刻意的：**cyan 是資料強調，pink 只留給唯一的主要動作**。skill 要求「至少 3 種霓虹色」，這裡 cyan / green / yellow / pink 四色各有明確語意，不是隨機撒色。
+刻意的：**cyan 是資料強調／瀏覽中，pink 只留給唯一的主要動作，橘色 `pick` 專指使用者已確定的選擇**。skill 要求「至少 3 種霓虹色」，這裡 cyan / green / yellow / pink / orange 五色各有明確語意，不是隨機撒色。
 
 **霓虹色只上在邊框、數字與狀態上，段落文字一律用 `ink`。** 這是 skill 自己的 Don't（霓虹當 body 文字太刺眼）。`ink` 在 `surface-0` 上的對比約 15:1。
 
 ### 發光
 
-| 效果 | 值 | 用在 |
-| --- | --- | --- |
-| glow-data | `0 0 20px #00fff54d` | 完成時間卡、選取中的職業磚、active tab 光條 |
-| glow-ok | `0 0 18px #00ff8547` | 減半生效的階段卡／表單 |
-| glow-brand | `0 0 14px #ff2a8759` | 主要按鈕 |
+| 效果 | 值 | 觸發時機 | 用在 |
+| --- | --- | --- | --- |
+| glow-data | `0 0 14px rgb(0 255 245 / 0.45)` | hover | 完成時間卡、未選取職業磚的 hover 預覽、active tab 光條 |
+| glow-ok | `0 0 12px rgb(0 255 133 / 0.4)` | 常態 | 減半生效的階段卡／表單 |
+| glow-brand | `0 0 10px rgb(255 42 135 / 0.5)` | 常態（僅 `canAdvance` 時） | 主要按鈕 |
+| glow-pick | `0 0 14px rgb(255 122 26 / 0.5)` | 常態 | 選定中的職業磚 |
 
-實際頁面上**同時只會出現一到兩處 glow**。設計系統總覽頁把三種並排是為了展示，不是使用範例。
+`UiHudPanel` 用 `glow`（常態）與 `glow-on-hover`（互動回饋）兩個獨立 prop 區分這兩種觸發時機，不要混用。實際頁面上同時只會出現一到兩處發光。設計系統總覽頁把多種並排是為了展示，不是使用範例。
 
 ---
 
@@ -132,12 +134,12 @@ clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
 | 元件 | 規則 |
 | --- | --- |
 | **HudTag** | `[ MODULE_01 / 幹員職業 ]`。括號是元件的一部分（CSS 用 `::before` / `::after`）。**必須帶真實資訊**（模組編號＋中文區塊名），不做純裝飾的 eyebrow label。 |
-| **ProfessionTile** | 取代原生 `<select>`。未選取＝`surface-1` 底 + `ink-mute` 細邊 + `ink-soft` 字；選取＝`surface-2` 底 + `data` 邊 + `data` 字 + glow。實作需 `role="radiogroup"` + 方向鍵導覽。 |
-| **ModeTab** | 切角 tab + 底部 2px 光條。active 才有 `data` 邊框與光條。 |
+| **ProfessionTile** | 取代原生 `<select>`。三階視覺：未選取＝`surface-1` 底 + `ink-mute` 細邊 + `ink-soft` 字；hover＝邊框／文字轉 `data`＋ glow-data 預覽（放開就消失）；選定＝`surface-2` 底 + `pick` 邊 + `pick` 字 + glow-pick 常態發光。實作需 `role="radiogroup"` + 方向鍵導覽。 |
+| **ModeTab** | 切角 tab + 底部 2px 光條，跟 ProfessionTile 同一套三階視覺：預設＝`rule` 邊；hover＝邊框／文字轉 `data`＋ glow-data 預覽；active＝`pick` 邊框＋底部光條＋ glow-pick 常態發光。 |
 | **SelectControl / NumberInput** | 保留原生 `<select>` / `<input>`，只改觸發器樣式：`surface-2` 底、`ink-mute` 邊、8px 切角。focus 時邊框與 ring 轉 `data`。 |
 | **PrimaryButton** | `brand` 粉色 2px 邊 + glow，**全站只有「前往下一階段」用它**。 |
 | **MinusButton** | 圓形 22px，`danger` 邊與字。 |
-| **CompletionCard** | `data` 邊 + glow，**全頁唯一發光面板**。維持現有尺寸與位置（起始階段 select 的右側）。`--:--` 佔位符保留。 |
+| **CompletionCard** | `data` 邊，**hover 才發光**（`UiHudPanel` 的 `glow-on-hover`，不是常態）。維持現有尺寸與位置（起始階段 select 的右側）。`--:--` 佔位符保留。 |
 | **StageCard** | 序號 `01/02/03` + 標題 + 階段所需工時 + 左右兩位幹員 + 右側落差百分比。減半時整張轉 `ok`（邊框、序號框、工時值、百分比）並顯示「◆ 工作量減半」badge。 |
 | **StageForm** | 與 StageCard 同一套外殼，右上加 `[ EDITING / 編輯中 ]` 標籤。「編輯中」與「減半」是兩個獨立訊號，分別用 `data` 標籤與 `ok` 邊框表達，不要混用同一個顏色。 |
 

@@ -22,6 +22,8 @@
   --color-warn: #ffeb00;
   --color-danger: #ff003c;
   --color-brand: #ff2a87;
+  /* 使用者主動選定後的強調色，刻意跟 data（資料讀數用的藍綠色）區隔開 */
+  --color-pick: #ffa629;
 
   --color-rule: #00fff540;
   /* 網格只是質感底噪，不該搶內容；實測 12% 在 1280 寬會太吵，壓到 5% */
@@ -41,6 +43,7 @@
   --drop-shadow-glow-data: 0 0 14px rgb(0 255 245 / 0.45);
   --drop-shadow-glow-ok: 0 0 12px rgb(0 255 133 / 0.4);
   --drop-shadow-glow-brand: 0 0 10px rgb(255 42 135 / 0.5);
+  --drop-shadow-glow-pick: 0 0 16px rgb(255 166 41 / 0.55);
 
   --animate-hud-flash: hud-flash 420ms ease-out;
 
